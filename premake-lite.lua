@@ -1,3 +1,5 @@
+local project_root = path.getabsolute("."):gsub("/", "\\")
+
 workspace "SCSP-Localify-Lite"
     location "build-lite"
     architecture "x64"
@@ -7,7 +9,14 @@ workspace "SCSP-Localify-Lite"
     characterset "Unicode"
     warnings "Off"
     flags { "NoIncrementalLink", "MultiProcessorCompile" }
-    buildoptions { "/std:c++latest", "/utf-8" }
+    buildoptions {
+        "/std:c++latest",
+        "/utf-8",
+        "/Brepro",
+        "/experimental:deterministic",
+        "/pathmap:" .. project_root .. "=Z:\\scsp-localify",
+    }
+    linkoptions { "/Brepro" }
 
 project "minhook-lite"
     kind "StaticLib"
@@ -37,4 +46,4 @@ project "SCSP-Localify-Lite"
 
     filter "configurations:Release"
         optimize "Full"
-        symbols "On"
+        symbols "Off"
