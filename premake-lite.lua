@@ -5,7 +5,9 @@ workspace "SCSP-Localify-Lite"
     architecture "x64"
     platforms { "x64" }
     configurations { "Release" }
-    systemversion "latest"
+    -- B9FB was real-client verified with Windows SDK 10.0.26100.0. Do not let
+    -- the generated project silently drift with the newest SDK on each runner.
+    systemversion "10.0.26100.0"
     characterset "Unicode"
     warnings "Off"
     flags { "NoIncrementalLink", "MultiProcessorCompile" }
