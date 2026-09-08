@@ -192,6 +192,15 @@ namespace
         return delay <= 0 ? 0u : static_cast<DWORD>(delay > 5000 ? 5000 : delay);
     }
 
+    DWORD read_probe_game_min_process_age_ms()
+    {
+        char value[32]{};
+        const DWORD length = GetEnvironmentVariableA("SCSP_FULL_PROBE_GAME_MIN_PROCESS_AGE_MS", value, static_cast<DWORD>(sizeof(value)));
+        if (length == 0 || length >= sizeof(value)) return 0;
+        const long age = atol(value);
+        return age <= 0 ? 0u : static_cast<DWORD>(age > 10000 ? 10000 : age);
+    }
+
     DWORD read_probe_cri_min_process_age_ms()
     {
         char value[32]{};
@@ -342,6 +351,7 @@ namespace
         const int probe_stage = read_probe_stage();
         const int probe_pre_stage = read_probe_pre_stage();
         const DWORD probe_game_delay_ms = read_probe_game_delay_ms();
+        const DWORD probe_game_min_process_age_ms = read_probe_game_min_process_age_ms();
         const DWORD probe_cri_min_process_age_ms = read_probe_cri_min_process_age_ms();
         const bool probe_cri_skip_lookup = read_probe_cri_skip_lookup();
         char module_path[MAX_PATH]{};
@@ -367,6 +377,7 @@ namespace
             " level=" + std::to_string(probe_level) +
             " stage=" + std::to_string(probe_stage) + " pre_stage=" + std::to_string(probe_pre_stage) +
             " game_delay_ms=" + std::to_string(probe_game_delay_ms) +
+            " game_min_process_age_ms=" + std::to_string(probe_game_min_process_age_ms) +
             " cri_min_process_age_ms=" + std::to_string(probe_cri_min_process_age_ms) +
             " cri_skip_lookup=" + (probe_cri_skip_lookup ? std::string("yes") : std::string("no")) +
             " process_age_ms=" + std::to_string(current_process_age_ms()));
@@ -392,6 +403,19 @@ namespace
         {
             Sleep(probe_game_delay_ms);
             log_line("pre-GameAssembly delay completed ms=" + std::to_string(probe_game_delay_ms));
+        }
+
+        if (probe_game_min_process_age_ms > 0)
+        {
+            const uint64_t age_before_game = current_process_age_ms();
+            if (age_before_game < probe_game_min_process_age_ms)
+            {
+                const DWORD remaining = static_cast<DWORD>(probe_game_min_process_age_ms - age_before_game);
+                log_line("waiting before first GameAssembly poll remaining_ms=" + std::to_string(remaining) +
+                    " current_process_age_ms=" + std::to_string(age_before_game));
+                Sleep(remaining);
+            }
+            log_line("GameAssembly minimum process age reached process_age_ms=" + std::to_string(current_process_age_ms()));
         }
 
         HMODULE game_assembly = nullptr;
