@@ -192,6 +192,30 @@ namespace
         return delay <= 0 ? 0u : static_cast<DWORD>(delay > 5000 ? 5000 : delay);
     }
 
+    DWORD read_probe_cri_min_process_age_ms()
+    {
+        char value[32]{};
+        const DWORD length = GetEnvironmentVariableA("SCSP_FULL_PROBE_CRI_MIN_PROCESS_AGE_MS", value, static_cast<DWORD>(sizeof(value)));
+        if (length == 0 || length >= sizeof(value)) return 0;
+        const long age = atol(value);
+        return age <= 0 ? 0u : static_cast<DWORD>(age > 60000 ? 60000 : age);
+    }
+
+    uint64_t current_process_age_ms()
+    {
+        FILETIME creation{}, exit_time{}, kernel_time{}, user_time{}, now{};
+        if (!GetProcessTimes(GetCurrentProcess(), &creation, &exit_time, &kernel_time, &user_time)) return 0;
+        GetSystemTimeAsFileTime(&now);
+        ULARGE_INTEGER creation_value{};
+        ULARGE_INTEGER now_value{};
+        creation_value.LowPart = creation.dwLowDateTime;
+        creation_value.HighPart = creation.dwHighDateTime;
+        now_value.LowPart = now.dwLowDateTime;
+        now_value.HighPart = now.dwHighDateTime;
+        if (now_value.QuadPart < creation_value.QuadPart) return 0;
+        return (now_value.QuadPart - creation_value.QuadPart) / 10000ULL;
+    }
+
     void run_probe(int level)
     {
         log_line("probe begin: upstream v1.3.13 pre-hook metadata compatibility against SCSP 2.17 level=" + std::to_string(level));
@@ -310,6 +334,7 @@ namespace
         const int probe_stage = read_probe_stage();
         const int probe_pre_stage = read_probe_pre_stage();
         const DWORD probe_game_delay_ms = read_probe_game_delay_ms();
+        const DWORD probe_cri_min_process_age_ms = read_probe_cri_min_process_age_ms();
         char module_path[MAX_PATH]{};
         const DWORD module_path_len = self_module
             ? GetModuleFileNameA(self_module, module_path, static_cast<DWORD>(sizeof(module_path)))
@@ -332,7 +357,9 @@ namespace
             " target_process=" + (is_game_process ? std::string("yes") : std::string("no")) +
             " level=" + std::to_string(probe_level) +
             " stage=" + std::to_string(probe_stage) + " pre_stage=" + std::to_string(probe_pre_stage) +
-            " game_delay_ms=" + std::to_string(probe_game_delay_ms));
+            " game_delay_ms=" + std::to_string(probe_game_delay_ms) +
+            " cri_min_process_age_ms=" + std::to_string(probe_cri_min_process_age_ms) +
+            " process_age_ms=" + std::to_string(current_process_age_ms()));
         if (!is_game_process)
         {
             log_line("non-game host ignored; exiting before probe worker logic");
@@ -373,6 +400,19 @@ namespace
         {
             log_line("level 1 stage 1 pre-stage 2: GameAssembly polling only; no cri_ware polling");
             return 0;
+        }
+
+        if (probe_cri_min_process_age_ms > 0)
+        {
+            const uint64_t age_before_cri = current_process_age_ms();
+            if (age_before_cri < probe_cri_min_process_age_ms)
+            {
+                const DWORD remaining = static_cast<DWORD>(probe_cri_min_process_age_ms - age_before_cri);
+                log_line("waiting before first cri_ware poll remaining_ms=" + std::to_string(remaining) +
+                    " current_process_age_ms=" + std::to_string(age_before_cri));
+                Sleep(remaining);
+            }
+            log_line("cri_ware minimum process age reached process_age_ms=" + std::to_string(current_process_age_ms()));
         }
 
         HMODULE cri_ware = nullptr;
