@@ -1,5 +1,6 @@
 #include <Windows.h>
 
+#include <atomic>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -39,6 +40,9 @@ namespace
     il2cpp_thread_detach_t il2cpp_thread_detach = nullptr;
 
     std::mutex log_mutex;
+    std::atomic_uint32_t worker_counter{0};
+    thread_local uint32_t current_worker_id = 0;
+    HMODULE self_module = nullptr;
     unsigned ok_count = 0;
     unsigned missing_count = 0;
 
@@ -51,7 +55,14 @@ namespace
         sprintf_s(stamp, "%04u-%02u-%02u %02u:%02u:%02u.%03u",
             st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
         std::ofstream out("scsp-full-compat-probe.log", std::ios::app | std::ios::binary);
-        if (out) out << '[' << stamp << "] [full-probe] " << message << "\r\n";
+        if (out)
+        {
+            out << '[' << stamp << "] [full-probe]"
+                << " [pid=" << GetCurrentProcessId()
+                << " tid=" << GetCurrentThreadId()
+                << " wid=" << current_worker_id << "] "
+                << message << "\r\n";
+        }
     }
 
     template <typename T>
@@ -294,12 +305,23 @@ namespace
 
     DWORD WINAPI worker_thread(void*)
     {
-        std::ofstream("scsp-full-compat-probe.log", std::ios::trunc | std::ios::binary).close();
+        current_worker_id = ++worker_counter;
         const int probe_level = read_probe_level();
         const int probe_stage = read_probe_stage();
         const int probe_pre_stage = read_probe_pre_stage();
         const DWORD probe_game_delay_ms = read_probe_game_delay_ms();
-        log_line("worker started; read-only full-hook compatibility probe level=" + std::to_string(probe_level) +
+        char module_path[MAX_PATH]{};
+        const DWORD module_path_len = self_module
+            ? GetModuleFileNameA(self_module, module_path, static_cast<DWORD>(sizeof(module_path)))
+            : 0;
+        char process_path[MAX_PATH]{};
+        const DWORD process_path_len = GetModuleFileNameA(nullptr, process_path, static_cast<DWORD>(sizeof(process_path)));
+        char module_base[64]{};
+        sprintf_s(module_base, "%p", self_module);
+        log_line("worker started; module_base=" + std::string(module_base) +
+            " module_path=" + (module_path_len > 0 ? std::string(module_path, module_path_len) : std::string("<unknown>")) +
+            " process_path=" + (process_path_len > 0 ? std::string(process_path, process_path_len) : std::string("<unknown>")) +
+            " level=" + std::to_string(probe_level) +
             " stage=" + std::to_string(probe_stage) + " pre_stage=" + std::to_string(probe_pre_stage) +
             " game_delay_ms=" + std::to_string(probe_game_delay_ms));
         if (probe_level == 0)
@@ -435,6 +457,7 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID)
 {
     if (reason == DLL_PROCESS_ATTACH)
     {
+        self_module = module;
         DisableThreadLibraryCalls(module);
         if (HANDLE thread = CreateThread(nullptr, 0, worker_thread, nullptr, 0, nullptr))
         {
