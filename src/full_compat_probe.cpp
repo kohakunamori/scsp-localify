@@ -172,6 +172,15 @@ namespace
         return stage < 1 ? 1 : (stage > 4 ? 4 : stage);
     }
 
+    DWORD read_probe_game_delay_ms()
+    {
+        char value[32]{};
+        const DWORD length = GetEnvironmentVariableA("SCSP_FULL_PROBE_GAME_DELAY_MS", value, static_cast<DWORD>(sizeof(value)));
+        if (length == 0 || length >= sizeof(value)) return 0;
+        const long delay = atol(value);
+        return delay <= 0 ? 0u : static_cast<DWORD>(delay > 5000 ? 5000 : delay);
+    }
+
     void run_probe(int level)
     {
         log_line("probe begin: upstream v1.3.13 pre-hook metadata compatibility against SCSP 2.17 level=" + std::to_string(level));
@@ -289,8 +298,10 @@ namespace
         const int probe_level = read_probe_level();
         const int probe_stage = read_probe_stage();
         const int probe_pre_stage = read_probe_pre_stage();
+        const DWORD probe_game_delay_ms = read_probe_game_delay_ms();
         log_line("worker started; read-only full-hook compatibility probe level=" + std::to_string(probe_level) +
-            " stage=" + std::to_string(probe_stage) + " pre_stage=" + std::to_string(probe_pre_stage));
+            " stage=" + std::to_string(probe_stage) + " pre_stage=" + std::to_string(probe_pre_stage) +
+            " game_delay_ms=" + std::to_string(probe_game_delay_ms));
         if (probe_level == 0)
         {
             log_line("level 0: no IL2CPP access; worker exiting");
@@ -302,6 +313,12 @@ namespace
             Sleep(10000);
             log_line("level 1 stage 1 pre-stage 1: sleep-only worker lifetime test; no module polling");
             return 0;
+        }
+
+        if (probe_game_delay_ms > 0)
+        {
+            Sleep(probe_game_delay_ms);
+            log_line("pre-GameAssembly delay completed ms=" + std::to_string(probe_game_delay_ms));
         }
 
         HMODULE game_assembly = nullptr;
