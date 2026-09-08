@@ -158,3 +158,4 @@ resources/text_dumper/bin
 /backend
 
 build-lite
+build-probe
