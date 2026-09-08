@@ -163,6 +163,15 @@ namespace
         return stage < 1 ? 1 : (stage > 5 ? 5 : stage);
     }
 
+    int read_probe_pre_stage()
+    {
+        char value[32]{};
+        const DWORD length = GetEnvironmentVariableA("SCSP_FULL_PROBE_PRE_STAGE", value, static_cast<DWORD>(sizeof(value)));
+        if (length == 0 || length >= sizeof(value)) return 4;
+        const int stage = atoi(value);
+        return stage < 1 ? 1 : (stage > 4 ? 4 : stage);
+    }
+
     void run_probe(int level)
     {
         log_line("probe begin: upstream v1.3.13 pre-hook metadata compatibility against SCSP 2.17 level=" + std::to_string(level));
@@ -279,11 +288,19 @@ namespace
         std::ofstream("scsp-full-compat-probe.log", std::ios::trunc | std::ios::binary).close();
         const int probe_level = read_probe_level();
         const int probe_stage = read_probe_stage();
+        const int probe_pre_stage = read_probe_pre_stage();
         log_line("worker started; read-only full-hook compatibility probe level=" + std::to_string(probe_level) +
-            " stage=" + std::to_string(probe_stage));
+            " stage=" + std::to_string(probe_stage) + " pre_stage=" + std::to_string(probe_pre_stage));
         if (probe_level == 0)
         {
             log_line("level 0: no IL2CPP access; worker exiting");
+            return 0;
+        }
+
+        if (probe_level == 1 && probe_stage == 1 && probe_pre_stage == 1)
+        {
+            Sleep(10000);
+            log_line("level 1 stage 1 pre-stage 1: sleep-only worker lifetime test; no module polling");
             return 0;
         }
 
@@ -299,6 +316,12 @@ namespace
             return 1;
         }
 
+        if (probe_level == 1 && probe_stage == 1 && probe_pre_stage == 2)
+        {
+            log_line("level 1 stage 1 pre-stage 2: GameAssembly polling only; no cri_ware polling");
+            return 0;
+        }
+
         HMODULE cri_ware = nullptr;
         for (int attempt = 0; attempt < 2400 && !cri_ware; ++attempt)
         {
@@ -310,11 +333,18 @@ namespace
             log_line("cri_ware_unity.dll not found; aborting before IL2CPP access");
             return 2;
         }
+
+        if (probe_level == 1 && probe_stage == 1 && probe_pre_stage == 3)
+        {
+            log_line("level 1 stage 1 pre-stage 3: GameAssembly + cri_ware polling; no post-readiness delay");
+            return 0;
+        }
+
         Sleep(250);
 
         if (probe_level == 1 && probe_stage == 1)
         {
-            log_line("level 1 stage 1: module readiness only; no IL2CPP export access");
+            log_line("level 1 stage 1 pre-stage 4: module readiness plus 250 ms delay; no IL2CPP export access");
             return 0;
         }
 
