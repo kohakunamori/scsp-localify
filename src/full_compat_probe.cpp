@@ -201,6 +201,14 @@ namespace
         return age <= 0 ? 0u : static_cast<DWORD>(age > 60000 ? 60000 : age);
     }
 
+    bool read_probe_cri_skip_lookup()
+    {
+        char value[32]{};
+        const DWORD length = GetEnvironmentVariableA("SCSP_FULL_PROBE_CRI_SKIP_LOOKUP", value, static_cast<DWORD>(sizeof(value)));
+        if (length == 0 || length >= sizeof(value)) return false;
+        return atoi(value) != 0;
+    }
+
     uint64_t current_process_age_ms()
     {
         FILETIME creation{}, exit_time{}, kernel_time{}, user_time{}, now{};
@@ -335,6 +343,7 @@ namespace
         const int probe_pre_stage = read_probe_pre_stage();
         const DWORD probe_game_delay_ms = read_probe_game_delay_ms();
         const DWORD probe_cri_min_process_age_ms = read_probe_cri_min_process_age_ms();
+        const bool probe_cri_skip_lookup = read_probe_cri_skip_lookup();
         char module_path[MAX_PATH]{};
         const DWORD module_path_len = self_module
             ? GetModuleFileNameA(self_module, module_path, static_cast<DWORD>(sizeof(module_path)))
@@ -359,6 +368,7 @@ namespace
             " stage=" + std::to_string(probe_stage) + " pre_stage=" + std::to_string(probe_pre_stage) +
             " game_delay_ms=" + std::to_string(probe_game_delay_ms) +
             " cri_min_process_age_ms=" + std::to_string(probe_cri_min_process_age_ms) +
+            " cri_skip_lookup=" + (probe_cri_skip_lookup ? std::string("yes") : std::string("no")) +
             " process_age_ms=" + std::to_string(current_process_age_ms()));
         if (!is_game_process)
         {
@@ -413,6 +423,13 @@ namespace
                 Sleep(remaining);
             }
             log_line("cri_ware minimum process age reached process_age_ms=" + std::to_string(current_process_age_ms()));
+        }
+
+        if (probe_cri_skip_lookup)
+        {
+            log_line("cri_ware lookup skipped by control; exiting before any cri_ware access process_age_ms=" +
+                std::to_string(current_process_age_ms()));
+            return 0;
         }
 
         HMODULE cri_ware = nullptr;
