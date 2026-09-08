@@ -318,12 +318,26 @@ namespace
         const DWORD process_path_len = GetModuleFileNameA(nullptr, process_path, static_cast<DWORD>(sizeof(process_path)));
         char module_base[64]{};
         sprintf_s(module_base, "%p", self_module);
+        const std::string process_image = process_path_len > 0
+            ? std::string(process_path, process_path_len)
+            : std::string("<unknown>");
+        const auto separator = process_image.find_last_of("\\/");
+        const std::string process_name = separator == std::string::npos
+            ? process_image
+            : process_image.substr(separator + 1);
+        const bool is_game_process = _stricmp(process_name.c_str(), "imasscprism.exe") == 0;
         log_line("worker started; module_base=" + std::string(module_base) +
             " module_path=" + (module_path_len > 0 ? std::string(module_path, module_path_len) : std::string("<unknown>")) +
-            " process_path=" + (process_path_len > 0 ? std::string(process_path, process_path_len) : std::string("<unknown>")) +
+            " process_path=" + process_image +
+            " target_process=" + (is_game_process ? std::string("yes") : std::string("no")) +
             " level=" + std::to_string(probe_level) +
             " stage=" + std::to_string(probe_stage) + " pre_stage=" + std::to_string(probe_pre_stage) +
             " game_delay_ms=" + std::to_string(probe_game_delay_ms));
+        if (!is_game_process)
+        {
+            log_line("non-game host ignored; exiting before probe worker logic");
+            return 0;
+        }
         if (probe_level == 0)
         {
             log_line("level 0: no IL2CPP access; worker exiting");
