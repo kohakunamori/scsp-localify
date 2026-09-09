@@ -60,6 +60,7 @@ namespace
 
     using LocalizationGetTextFn = Il2CppString* (*)(void*, Il2CppString*, int);
     using UiAwakeFn = void (*)(void*);
+    using LyricFn = void (*)(void*, Il2CppString*);
     using UiGetTextFn = Il2CppString* (*)(void*);
     using UiSetTextFn = void (*)(void*, Il2CppString*);
     using AssetBundleLoadFromFileFn = void* (*)(Il2CppString*, uint32_t, uint64_t);
@@ -70,6 +71,8 @@ namespace
 
     LocalizationGetTextFn localization_get_text_orig = nullptr;
     UiAwakeFn ui_awake_orig = nullptr;
+    LyricFn live_mv_update_lyrics_orig = nullptr;
+    LyricFn timeline_set_lyric_orig = nullptr;
     UiGetTextFn ui_get_text = nullptr;
     UiSetTextFn ui_set_text = nullptr;
     AssetBundleLoadFromFileFn asset_bundle_load_from_file = nullptr;
@@ -88,8 +91,10 @@ namespace
     std::mutex log_mutex;
     std::unordered_map<std::string, std::unordered_map<int, std::string>> primary_translations;
     std::unordered_map<std::string, std::string> exact_translations;
+    std::unordered_map<std::string, std::string> lyric_translations;
     std::atomic_uint32_t primary_hits{0};
     std::atomic_uint32_t exact_hits{0};
+    std::atomic_uint32_t lyric_hits{0};
 
     std::string utf16_to_utf8(const wchar_t* data, int length)
     {
@@ -204,20 +209,31 @@ namespace
         return count;
     }
 
-    size_t load_exact_translations()
+    size_t load_string_translations(const std::filesystem::path& path,
+        std::unordered_map<std::string, std::string>& translations)
     {
-        exact_translations.clear();
+        translations.clear();
         rapidjson::Document doc;
-        if (!parse_json_file(localify_base / L"local2.json", doc) || !doc.IsObject()) return 0;
+        if (!parse_json_file(path, doc) || !doc.IsObject()) return 0;
 
         for (auto item = doc.MemberBegin(); item != doc.MemberEnd(); ++item)
         {
             if (item->name.IsString() && item->value.IsString())
             {
-                exact_translations[item->name.GetString()] = item->value.GetString();
+                translations[item->name.GetString()] = item->value.GetString();
             }
         }
-        return exact_translations.size();
+        return translations.size();
+    }
+
+    size_t load_exact_translations()
+    {
+        return load_string_translations(localify_base / L"local2.json", exact_translations);
+    }
+
+    size_t load_lyric_translations()
+    {
+        return load_string_translations(localify_base / L"lyrics.json", lyric_translations);
     }
 
     template <typename T>
@@ -389,6 +405,43 @@ namespace
         ui_awake_orig(self);
     }
 
+    Il2CppString* translate_lyric_or_original(Il2CppString* original, const char* surface)
+    {
+        if (!original) return original;
+
+        const auto original_utf8 = il2cpp_to_utf8(original);
+        const auto it = lyric_translations.find(original_utf8);
+        if (it == lyric_translations.end() || it->second.empty() || it->second == original_utf8)
+        {
+            return original;
+        }
+
+        auto replacement = il2cpp_string_new(it->second.c_str());
+        if (!replacement)
+        {
+            log_line(std::string("lyric allocation failed surface=") + surface);
+            return original;
+        }
+
+        const auto hit = ++lyric_hits;
+        if (hit <= 20)
+        {
+            std::string preview = original_utf8.substr(0, 96);
+            log_line("lyric hit #" + std::to_string(hit) + " surface=" + surface + " text=" + preview);
+        }
+        return replacement;
+    }
+
+    void LiveMVOverlayView_UpdateLyrics_hook(void* self, Il2CppString* text)
+    {
+        live_mv_update_lyrics_orig(self, translate_lyric_or_original(text, "LiveMVOverlayView.UpdateLyrics"));
+    }
+
+    void TimelineController_SetLyric_hook(void* self, Il2CppString* text)
+    {
+        timeline_set_lyric_orig(self, translate_lyric_or_original(text, "TimelineController.SetLyric"));
+    }
+
     bool install_hook(void* target, void* detour, void** original, const char* name)
     {
         if (!target)
@@ -440,8 +493,9 @@ namespace
         log_line("localify base=" + localify_base.string());
         const auto primary_count = load_primary_translations();
         const auto exact_count = load_exact_translations();
+        const auto lyric_count = load_lyric_translations();
         log_line("translations loaded: primary=" + std::to_string(primary_count) +
-            " local2=" + std::to_string(exact_count));
+            " local2=" + std::to_string(exact_count) + " lyrics=" + std::to_string(lyric_count));
 
         HMODULE game_assembly = nullptr;
         for (int attempt = 0; attempt < 2400 && !game_assembly; ++attempt)
@@ -516,6 +570,13 @@ namespace
         ui_get_text = reinterpret_cast<UiGetTextFn>(get_text_method);
         ui_set_text = reinterpret_cast<UiSetTextFn>(set_text_method);
 
+        const auto live_mv_update_lyrics_method = find_method(
+            "PRISM.Interactions.Live.dll", "PRISM.Interactions.Live", "LiveMVOverlayView", "UpdateLyrics", 1);
+        const auto timeline_set_lyric_method = find_method(
+            "PRISM.Legacy.dll", "PRISM", "TimelineController", "SetLyric", 1);
+        log_ptr("LiveMVOverlayView.UpdateLyrics", reinterpret_cast<void*>(live_mv_update_lyrics_method));
+        log_ptr("TimelineController.SetLyric", reinterpret_cast<void*>(timeline_set_lyric_method));
+
         asset_bundle_load_from_file = reinterpret_cast<AssetBundleLoadFromFileFn>(find_method(
             "UnityEngine.AssetBundleModule.dll", "UnityEngine", "AssetBundle", "LoadFromFile", 3));
         asset_bundle_load_asset = reinterpret_cast<AssetBundleLoadAssetFn>(find_method(
@@ -552,9 +613,17 @@ namespace
         const bool local2_ok = install_hook(reinterpret_cast<void*>(awake_method),
             reinterpret_cast<void*>(&UITextMeshProUGUI_Awake_hook),
             reinterpret_cast<void**>(&ui_awake_orig), "UITextMeshProUGUI.Awake");
+        const bool live_lyrics_ok = install_hook(reinterpret_cast<void*>(live_mv_update_lyrics_method),
+            reinterpret_cast<void*>(&LiveMVOverlayView_UpdateLyrics_hook),
+            reinterpret_cast<void**>(&live_mv_update_lyrics_orig), "LiveMVOverlayView.UpdateLyrics");
+        const bool timeline_lyrics_ok = install_hook(reinterpret_cast<void*>(timeline_set_lyric_method),
+            reinterpret_cast<void*>(&TimelineController_SetLyric_hook),
+            reinterpret_cast<void**>(&timeline_set_lyric_orig), "TimelineController.SetLyric");
 
         log_line(std::string("initialization complete primary=") + (primary_ok ? "ok" : "failed") +
-            " local2=" + (local2_ok ? "ok" : "failed"));
+            " local2=" + (local2_ok ? "ok" : "failed") +
+            " lyricsLive=" + (live_lyrics_ok ? "ok" : "failed") +
+            " lyricsTimeline=" + (timeline_lyrics_ok ? "ok" : "failed"));
         il2cpp_thread_detach(attached_thread);
         log_line("initialization thread detached from IL2CPP");
         return primary_ok ? 0 : 8;
