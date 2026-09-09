@@ -41,7 +41,11 @@ project "SCSP-Localify-Lite"
         "deps/minhook/include",
         "deps/rapidjson/include",
     }
-    files { "src/localization_lite_standalone.cpp" }
+    files {
+        "src/localization_lite_standalone.cpp",
+        "src/local/string_map_runtime.cpp",
+        "src/local/string_map_runtime.hpp",
+    }
     links { "minhook-lite" }
     defines { "WIN32_LEAN_AND_MEAN", "NOMINMAX" }
     staticruntime "Off"

@@ -2,6 +2,8 @@
 #include <MinHook.h>
 #include <rapidjson/document.h>
 
+#include "local/string_map_runtime.hpp"
+
 #include <atomic>
 #include <filesystem>
 #include <fstream>
@@ -90,8 +92,8 @@ namespace
     std::unordered_map<void*, bool> updated_tmp_fonts;
     std::mutex log_mutex;
     std::unordered_map<std::string, std::unordered_map<int, std::string>> primary_translations;
-    std::unordered_map<std::string, std::string> exact_translations;
-    std::unordered_map<std::string, std::string> lyric_translations;
+    SCStringMap::Dictionary exact_translations;
+    SCStringMap::Dictionary lyric_translations;
     std::atomic_uint32_t primary_hits{0};
     std::atomic_uint32_t exact_hits{0};
     std::atomic_uint32_t lyric_hits{0};
@@ -207,33 +209,6 @@ namespace
             }
         }
         return count;
-    }
-
-    size_t load_string_translations(const std::filesystem::path& path,
-        std::unordered_map<std::string, std::string>& translations)
-    {
-        translations.clear();
-        rapidjson::Document doc;
-        if (!parse_json_file(path, doc) || !doc.IsObject()) return 0;
-
-        for (auto item = doc.MemberBegin(); item != doc.MemberEnd(); ++item)
-        {
-            if (item->name.IsString() && item->value.IsString())
-            {
-                translations[item->name.GetString()] = item->value.GetString();
-            }
-        }
-        return translations.size();
-    }
-
-    size_t load_exact_translations()
-    {
-        return load_string_translations(localify_base / L"local2.json", exact_translations);
-    }
-
-    size_t load_lyric_translations()
-    {
-        return load_string_translations(localify_base / L"lyrics.json", lyric_translations);
     }
 
     template <typename T>
@@ -372,8 +347,8 @@ namespace
             if (auto original = ui_get_text(self))
             {
                 const auto original_utf8 = il2cpp_to_utf8(original);
-                const auto it = exact_translations.find(original_utf8);
-                if (it != exact_translations.end() && it->second != original_utf8)
+                const auto translated = exact_translations.find(original_utf8);
+                if (translated && *translated != original_utf8)
                 {
                     const auto hit = ++exact_hits;
                     if (hit <= 20)
@@ -381,7 +356,7 @@ namespace
                         std::string preview = original_utf8.substr(0, 96);
                         log_line("local2 hit #" + std::to_string(hit) + " text=" + preview);
                     }
-                    ui_set_text(self, il2cpp_string_new(it->second.c_str()));
+                    ui_set_text(self, il2cpp_string_new(translated->c_str()));
                 }
             }
         }
@@ -410,13 +385,13 @@ namespace
         if (!original) return original;
 
         const auto original_utf8 = il2cpp_to_utf8(original);
-        const auto it = lyric_translations.find(original_utf8);
-        if (it == lyric_translations.end() || it->second.empty() || it->second == original_utf8)
+        const auto translated = lyric_translations.find(original_utf8);
+        if (!translated || translated->empty() || *translated == original_utf8)
         {
             return original;
         }
 
-        auto replacement = il2cpp_string_new(it->second.c_str());
+        auto replacement = il2cpp_string_new(translated->c_str());
         if (!replacement)
         {
             log_line(std::string("lyric allocation failed surface=") + surface);
@@ -492,8 +467,18 @@ namespace
         load_config();
         log_line("localify base=" + localify_base.string());
         const auto primary_count = load_primary_translations();
-        const auto exact_count = load_exact_translations();
-        const auto lyric_count = load_lyric_translations();
+        const auto exact_result = exact_translations.load(localify_base / L"local2.json");
+        if (!exact_result)
+        {
+            log_line("local2 load failed: " + exact_result.error);
+        }
+        const auto lyric_result = lyric_translations.load(localify_base / L"lyrics.json");
+        if (!lyric_result)
+        {
+            log_line("lyrics load failed: " + lyric_result.error);
+        }
+        const auto exact_count = exact_result.entries;
+        const auto lyric_count = lyric_result.entries;
         log_line("translations loaded: primary=" + std::to_string(primary_count) +
             " local2=" + std::to_string(exact_count) + " lyrics=" + std::to_string(lyric_count));
 

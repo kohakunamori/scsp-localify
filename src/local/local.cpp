@@ -1,32 +1,18 @@
 #include <stdinclude.hpp>
+#include "string_map_runtime.hpp"
 
 
 namespace SCLocal {
 	namespace {
 		std::unordered_map<std::string, std::unordered_map<int, std::string>> localTrans{};
-		std::unordered_map<std::string, std::string> lrcTrans{};
-		std::unordered_map<std::string, std::string> unLocalTrans{};
+		SCStringMap::Dictionary lrcTrans{};
+		SCStringMap::Dictionary unLocalTrans{};
 	}
 
-	void loadGenericTrans(const char* fileName, std::unordered_map<std::string, std::string>& transDict) {
-		try {
-			transDict.clear();
-			std::ifstream file(g_localify_base / fileName);
-			if (!file.is_open()) {
-				printf("Load %s failed: file not found.\n", fileName);
-				return;
-			}
-			std::string fileContent((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-			file.close();
-			auto fileData = nlohmann::json::parse(fileContent);
-			for (auto& i : fileData.items()) {
-				const auto& key = i.key();
-				const std::string value = i.value();
-				transDict[key] = value;
-			}
-		}
-		catch (std::exception& e) {
-			printf("Load %s failed: %s\n", fileName, e.what());
+	void loadGenericTrans(const char* fileName, SCStringMap::Dictionary& transDict) {
+		const auto result = transDict.load(g_localify_base / fileName);
+		if (!result) {
+			printf("Load %s failed: %s\n", fileName, result.error.c_str());
 		}
 	}
 
@@ -59,8 +45,8 @@ namespace SCLocal {
 					const auto& subIdStr = v.key();
 					const auto subId = std::stoi(subIdStr);
 					std::string localText = v.value();
-					if (auto it = unLocalTrans.find(localText); it != unLocalTrans.end()) {
-						localText = it->second;
+					if (const auto translated = unLocalTrans.find(localText)) {
+						localText = *translated;
 					}
 					localTrans[key][subId] = localText;
 					totalItemCount++;
@@ -191,8 +177,8 @@ namespace SCLocal {
 	std::string getLyricsTrans(const std::wstring& orig) {
 		// const auto lrcStr = replaceAll(replaceAll(utility::conversions::to_utf8string(orig), "\n", "\\n"), "\r", "\\r");
 		const auto lrcStr = utility::conversions::to_utf8string(orig);
-		if (auto iter = lrcTrans.find(lrcStr); iter != lrcTrans.end()) {
-			return iter->second;
+		if (const auto translated = lrcTrans.find(lrcStr)) {
+			return *translated;
 		}
 		else {
 			if (g_dump_untrans_lyrics) {
@@ -205,8 +191,8 @@ namespace SCLocal {
 	bool getGameUnlocalTrans(const std::wstring& orig, std::string* newStr) {
 		// const auto origStr = replaceAll(replaceAll(utility::conversions::to_utf8string(orig), "\n", "\\n"), "\r", "\\r");
 		const auto origStr = utility::conversions::to_utf8string(orig);
-		if (auto iter = unLocalTrans.find(origStr); iter != unLocalTrans.end()) {
-			*newStr = iter->second;
+		if (const auto translated = unLocalTrans.find(origStr)) {
+			*newStr = *translated;
 			return true;
 		}
 		else {
