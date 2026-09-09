@@ -1,6 +1,11 @@
 #include "local_file_runtime.hpp"
 
 namespace SCLocalFile {
+    bool is_scenario_json(const std::wstring& game_path) noexcept
+    {
+        return game_path.starts_with(L"s") && game_path.ends_with(L".json");
+    }
+
     namespace {
         std::filesystem::path parent_path_from_underscores(const std::wstring& game_path)
         {

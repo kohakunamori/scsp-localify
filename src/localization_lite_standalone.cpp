@@ -419,7 +419,8 @@ namespace
         {
             const std::wstring game_path(path->start_char, path->start_char + path->length);
             std::filesystem::path local_path;
-            if (SCLocalFile::resolve_local_file(localify_base, game_path, local_path))
+            if (SCLocalFile::is_scenario_json(game_path) &&
+                SCLocalFile::resolve_local_file(localify_base, game_path, local_path))
             {
                 const auto local_path_wide = local_path.wstring();
                 const auto local_path_utf8 = utf16_to_utf8(

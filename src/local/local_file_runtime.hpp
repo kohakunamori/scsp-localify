@@ -4,6 +4,8 @@
 #include <string>
 
 namespace SCLocalFile {
+    bool is_scenario_json(const std::wstring& game_path) noexcept;
+
     std::filesystem::path path_for_game_file(
         const std::wstring& game_path,
         bool create_parent_path,
