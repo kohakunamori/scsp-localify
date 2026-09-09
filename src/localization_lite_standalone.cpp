@@ -3,6 +3,7 @@
 #include <rapidjson/document.h>
 
 #include "local/string_map_runtime.hpp"
+#include "local/local_file_runtime.hpp"
 
 #include <atomic>
 #include <filesystem>
@@ -70,6 +71,8 @@ namespace
     using TmpGetFontFn = void* (*)(void*);
     using TmpSetSourceFontFileFn = void (*)(void*, void*);
     using TmpUpdateFontAssetDataFn = void (*)(void*);
+    using DataFileGetBytesFn = void* (*)(Il2CppString*);
+    using ReadAllBytesFn = void* (*)(Il2CppString*);
 
     LocalizationGetTextFn localization_get_text_orig = nullptr;
     UiAwakeFn ui_awake_orig = nullptr;
@@ -82,6 +85,8 @@ namespace
     TmpGetFontFn tmp_get_font = nullptr;
     TmpSetSourceFontFileFn tmp_set_source_font_file = nullptr;
     TmpUpdateFontAssetDataFn tmp_update_font_asset_data = nullptr;
+    DataFileGetBytesFn data_file_get_bytes_orig = nullptr;
+    ReadAllBytesFn read_all_bytes = nullptr;
 
     std::filesystem::path localify_base = L"scsp_localify";
     std::string custom_font_spec = "scsp_localify/scsp-bundle::assets/font/sbtphumminge-regular.ttf";
@@ -97,6 +102,7 @@ namespace
     std::atomic_uint32_t primary_hits{0};
     std::atomic_uint32_t exact_hits{0};
     std::atomic_uint32_t lyric_hits{0};
+    std::atomic_uint32_t scenario_hits{0};
 
     std::string utf16_to_utf8(const wchar_t* data, int length)
     {
@@ -407,6 +413,40 @@ namespace
         return replacement;
     }
 
+    void* DataFile_GetBytes_hook(Il2CppString* path)
+    {
+        if (path && read_all_bytes)
+        {
+            const std::wstring game_path(path->start_char, path->start_char + path->length);
+            std::filesystem::path local_path;
+            if (SCLocalFile::resolve_local_file(localify_base, game_path, local_path))
+            {
+                const auto local_path_wide = local_path.wstring();
+                const auto local_path_utf8 = utf16_to_utf8(
+                    local_path_wide.data(), static_cast<int>(local_path_wide.size()));
+                if (!local_path_utf8.empty())
+                {
+                    if (auto managed_path = il2cpp_string_new(local_path_utf8.c_str()))
+                    {
+                        if (auto bytes = read_all_bytes(managed_path))
+                        {
+                            const auto hit = ++scenario_hits;
+                            if (hit <= 20)
+                            {
+                                log_line("scenario hit #" + std::to_string(hit) +
+                                    " key=" + il2cpp_to_utf8(path) +
+                                    " local=" + local_path_utf8);
+                            }
+                            return bytes;
+                        }
+                        log_line("scenario local read returned null: " + local_path_utf8);
+                    }
+                }
+            }
+        }
+        return data_file_get_bytes_orig(path);
+    }
+
     void LiveMVOverlayView_UpdateLyrics_hook(void* self, Il2CppString* text)
     {
         live_mv_update_lyrics_orig(self, translate_lyric_or_original(text, "LiveMVOverlayView.UpdateLyrics"));
@@ -562,6 +602,13 @@ namespace
         log_ptr("LiveMVOverlayView.UpdateLyrics", reinterpret_cast<void*>(live_mv_update_lyrics_method));
         log_ptr("TimelineController.SetLyric", reinterpret_cast<void*>(timeline_set_lyric_method));
 
+        const auto data_file_get_bytes_method = find_method(
+            "PRISM.Legacy.dll", "PRISM", "DataFile", "GetBytes", 1);
+        read_all_bytes = reinterpret_cast<ReadAllBytesFn>(find_method(
+            "mscorlib.dll", "System.IO", "File", "ReadAllBytes", 1));
+        log_ptr("DataFile.GetBytes", reinterpret_cast<void*>(data_file_get_bytes_method));
+        log_ptr("System.IO.File.ReadAllBytes", reinterpret_cast<void*>(read_all_bytes));
+
         asset_bundle_load_from_file = reinterpret_cast<AssetBundleLoadFromFileFn>(find_method(
             "UnityEngine.AssetBundleModule.dll", "UnityEngine", "AssetBundle", "LoadFromFile", 3));
         asset_bundle_load_asset = reinterpret_cast<AssetBundleLoadAssetFn>(find_method(
@@ -604,11 +651,23 @@ namespace
         const bool timeline_lyrics_ok = install_hook(reinterpret_cast<void*>(timeline_set_lyric_method),
             reinterpret_cast<void*>(&TimelineController_SetLyric_hook),
             reinterpret_cast<void**>(&timeline_set_lyric_orig), "TimelineController.SetLyric");
+        bool scenario_ok = false;
+        if (data_file_get_bytes_method && read_all_bytes)
+        {
+            scenario_ok = install_hook(reinterpret_cast<void*>(data_file_get_bytes_method),
+                reinterpret_cast<void*>(&DataFile_GetBytes_hook),
+                reinterpret_cast<void**>(&data_file_get_bytes_orig), "DataFile.GetBytes");
+        }
+        else
+        {
+            log_line("scenario hook unavailable: DataFile.GetBytes or File.ReadAllBytes missing");
+        }
 
         log_line(std::string("initialization complete primary=") + (primary_ok ? "ok" : "failed") +
             " local2=" + (local2_ok ? "ok" : "failed") +
             " lyricsLive=" + (live_lyrics_ok ? "ok" : "failed") +
-            " lyricsTimeline=" + (timeline_lyrics_ok ? "ok" : "failed"));
+            " lyricsTimeline=" + (timeline_lyrics_ok ? "ok" : "failed") +
+            " scenario=" + (scenario_ok ? "ok" : "failed"));
         il2cpp_thread_detach(attached_thread);
         log_line("initialization thread detached from IL2CPP");
         return primary_ok ? 0 : 8;

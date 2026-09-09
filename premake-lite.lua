@@ -45,6 +45,8 @@ project "SCSP-Localify-Lite"
         "src/localization_lite_standalone.cpp",
         "src/local/string_map_runtime.cpp",
         "src/local/string_map_runtime.hpp",
+        "src/local/local_file_runtime.cpp",
+        "src/local/local_file_runtime.hpp",
     }
     links { "minhook-lite" }
     defines { "WIN32_LEAN_AND_MEAN", "NOMINMAX" }

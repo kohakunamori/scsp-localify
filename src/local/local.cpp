@@ -1,5 +1,6 @@
 #include <stdinclude.hpp>
 #include "string_map_runtime.hpp"
+#include "local_file_runtime.hpp"
 
 
 namespace SCLocal {
@@ -85,53 +86,13 @@ namespace SCLocal {
 		return false;
 	}
 
-	std::vector<std::wstring> split(const std::wstring& text, wchar_t delimiter) {
-		std::vector<std::wstring> parts;
-		std::wstring::size_type start = 0;
-		std::wstring::size_type end = text.find(delimiter);
-		while (end != std::wstring::npos) {
-			parts.push_back(text.substr(start, end - start));
-			start = end + 1;
-			end = text.find(delimiter, start);
-		}
-		parts.push_back(text.substr(start));
-		return parts;
-	}
-
-	std::filesystem::path splitFatherDirectoryByUnderline(const std::wstring& name) {
-		auto parts = split(name, L'_');
-		if (parts.size() == 1) {
-			return ".";
-		}
-
-		std::filesystem::path filePath;
-		for (int i = 0; i < 2; i++) {
-			filePath /= parts[i];
-		}
-		return filePath;
-	}
-
 	std::filesystem::path getFilePathByName(const std::wstring& gamePath, bool createFatherPath, const std::filesystem::path& fatherBase) {
-		std::filesystem::path localFileName;
-		if (gamePath.starts_with(L"s")) {
-			localFileName /= L"scenario";
-		}
-		const auto fatherPath = localFileName / splitFatherDirectoryByUnderline(gamePath);
-		if (createFatherPath) {
-			if (!std::filesystem::exists(fatherBase / fatherPath)) {
-				std::filesystem::create_directories(fatherBase / fatherPath);
-			}
-		}
-		return fatherPath / gamePath;
+		return SCLocalFile::path_for_game_file(gamePath, createFatherPath, fatherBase);
 	}
 
 	bool getLocalFileName(const std::wstring& gamePath, std::filesystem::path* localPath, bool checkExists) {
-		auto localFileName = g_localify_base / getFilePathByName(gamePath, !checkExists, g_localify_base);
-		if (std::filesystem::exists(localFileName) || !checkExists) {
-			*localPath = localFileName;
-			return true;
-		}
-		return false;
+		if (!localPath) return false;
+		return SCLocalFile::resolve_local_file(g_localify_base, gamePath, *localPath, checkExists);
 	}
 
 	void dumpGenericText(const std::string& dumpStr, const char* fileName, bool withOrigText = false) {
