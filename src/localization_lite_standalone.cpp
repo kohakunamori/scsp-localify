@@ -28,6 +28,15 @@ namespace
         wchar_t start_char[1];
     };
 
+    struct DramaSubtitlePlayableBehaviour : Il2CppObject
+    {
+        Il2CppString* unique_id;
+        Il2CppString* text;
+    };
+
+    static_assert(offsetof(DramaSubtitlePlayableBehaviour, unique_id) == 0x10);
+    static_assert(offsetof(DramaSubtitlePlayableBehaviour, text) == 0x18);
+
     struct MethodInfo
     {
         uintptr_t methodPointer;
@@ -47,6 +56,7 @@ namespace
     using il2cpp_type_get_object_t = void* (*)(const void*);
     using il2cpp_gchandle_new_t = void* (*)(void*, bool);
     using il2cpp_gchandle_get_target_t = void* (*)(void*);
+    using il2cpp_gc_wbarrier_set_field_t = void (*)(Il2CppObject*, void**, void*);
 
     il2cpp_domain_get_t il2cpp_domain_get = nullptr;
     il2cpp_domain_assembly_open_t il2cpp_domain_assembly_open = nullptr;
@@ -60,6 +70,7 @@ namespace
     il2cpp_type_get_object_t il2cpp_type_get_object = nullptr;
     il2cpp_gchandle_new_t il2cpp_gchandle_new = nullptr;
     il2cpp_gchandle_get_target_t il2cpp_gchandle_get_target = nullptr;
+    il2cpp_gc_wbarrier_set_field_t il2cpp_gc_wbarrier_set_field = nullptr;
 
     using LocalizationGetTextFn = Il2CppString* (*)(void*, Il2CppString*, int);
     using UiAwakeFn = void (*)(void*);
@@ -73,6 +84,7 @@ namespace
     using TmpUpdateFontAssetDataFn = void (*)(void*);
     using DataFileGetBytesFn = void* (*)(Il2CppString*);
     using ReadAllBytesFn = void* (*)(Il2CppString*);
+    using DramaSubtitleApplyFn = void (*)(void*, void*, double);
 
     LocalizationGetTextFn localization_get_text_orig = nullptr;
     UiAwakeFn ui_awake_orig = nullptr;
@@ -87,6 +99,7 @@ namespace
     TmpUpdateFontAssetDataFn tmp_update_font_asset_data = nullptr;
     DataFileGetBytesFn data_file_get_bytes_orig = nullptr;
     ReadAllBytesFn read_all_bytes = nullptr;
+    DramaSubtitleApplyFn drama_subtitle_apply_orig = nullptr;
 
     std::filesystem::path localify_base = L"scsp_localify";
     std::string custom_font_spec = "scsp_localify/scsp-bundle::assets/font/sbtphumminge-regular.ttf";
@@ -99,10 +112,12 @@ namespace
     std::unordered_map<std::string, std::unordered_map<int, std::string>> primary_translations;
     SCStringMap::Dictionary exact_translations;
     SCStringMap::Dictionary lyric_translations;
+    std::unordered_map<std::string, std::string> drama_translations;
     std::atomic_uint32_t primary_hits{0};
     std::atomic_uint32_t exact_hits{0};
     std::atomic_uint32_t lyric_hits{0};
     std::atomic_uint32_t scenario_hits{0};
+    std::atomic_uint32_t drama_hits{0};
 
     std::string utf16_to_utf8(const wchar_t* data, int length)
     {
@@ -215,6 +230,56 @@ namespace
             }
         }
         return count;
+    }
+
+    std::string make_drama_key(const std::string& unique_id, const std::string& source)
+    {
+        std::string key;
+        key.reserve(unique_id.size() + 1 + source.size());
+        key.append(unique_id);
+        key.push_back('\0');
+        key.append(source);
+        return key;
+    }
+
+    size_t load_drama_translations()
+    {
+        drama_translations.clear();
+        rapidjson::Document doc;
+        if (!parse_json_file(localify_base / L"drama.json", doc)) return 0;
+
+        const rapidjson::Value* entries = nullptr;
+        if (doc.IsArray()) entries = &doc;
+        else if (doc.IsObject())
+        {
+            const auto it = doc.FindMember("entries");
+            if (it != doc.MemberEnd() && it->value.IsArray()) entries = &it->value;
+        }
+        if (!entries)
+        {
+            log_line("drama.json must be an array or an object containing entries[]");
+            return 0;
+        }
+
+        size_t count = 0;
+        size_t duplicate_count = 0;
+        for (const auto& entry : entries->GetArray())
+        {
+            if (!entry.IsObject()) continue;
+            const auto uid = entry.FindMember("uniqueId");
+            const auto source = entry.FindMember("source");
+            const auto text = entry.FindMember("text");
+            if (uid == entry.MemberEnd() || source == entry.MemberEnd() || text == entry.MemberEnd() ||
+                !uid->value.IsString() || !source->value.IsString() || !text->value.IsString()) continue;
+            auto key = make_drama_key(uid->value.GetString(), source->value.GetString());
+            if (drama_translations.contains(key)) ++duplicate_count;
+            drama_translations[std::move(key)] = text->value.GetString();
+            ++count;
+        }
+        log_line("drama translations loaded: entries=" + std::to_string(count) +
+            " keys=" + std::to_string(drama_translations.size()) +
+            " duplicateKeys=" + std::to_string(duplicate_count));
+        return drama_translations.size();
     }
 
     template <typename T>
@@ -448,6 +513,60 @@ namespace
         return data_file_get_bytes_orig(path);
     }
 
+    bool try_get_drama_subtitle_behaviour(void* timeline_clip, DramaSubtitlePlayableBehaviour** out)
+    {
+        if (!timeline_clip || !out) return false;
+        *out = nullptr;
+        __try
+        {
+            // 2.17 deprotected DramaSubtitleMixerBehaviour.Apply (RVA 0x4265540):
+            // TimelineClip + 0x28 -> playable asset; playable asset + 0x18 -> behaviour.
+            auto* playable_asset = *reinterpret_cast<Il2CppObject**>(
+                static_cast<unsigned char*>(timeline_clip) + 0x28);
+            if (!playable_asset) return false;
+            auto* behaviour = *reinterpret_cast<DramaSubtitlePlayableBehaviour**>(
+                reinterpret_cast<unsigned char*>(playable_asset) + 0x18);
+            if (!behaviour) return false;
+            *out = behaviour;
+            return true;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return false;
+        }
+    }
+
+    void DramaSubtitleMixerBehaviour_Apply_hook(void* self, void* timeline_clip, double time)
+    {
+        if (timeline_clip && il2cpp_gc_wbarrier_set_field && !drama_translations.empty())
+        {
+            DramaSubtitlePlayableBehaviour* behaviour = nullptr;
+            if (try_get_drama_subtitle_behaviour(timeline_clip, &behaviour) && behaviour && behaviour->text)
+            {
+                const auto unique_id = il2cpp_to_utf8(behaviour->unique_id);
+                const auto source = il2cpp_to_utf8(behaviour->text);
+                const auto it = drama_translations.find(make_drama_key(unique_id, source));
+                if (it != drama_translations.end() && it->second != source)
+                {
+                    if (auto* replacement = il2cpp_string_new(it->second.c_str()))
+                    {
+                        il2cpp_gc_wbarrier_set_field(
+                            reinterpret_cast<Il2CppObject*>(behaviour),
+                            reinterpret_cast<void**>(&behaviour->text), replacement);
+                        const auto hit = ++drama_hits;
+                        if (hit <= 40)
+                        {
+                            log_line("drama hit #" + std::to_string(hit) +
+                                " uid=" + unique_id +
+                                " source=" + source.substr(0, 96));
+                        }
+                    }
+                }
+            }
+        }
+        drama_subtitle_apply_orig(self, timeline_clip, time);
+    }
+
     void LiveMVOverlayView_UpdateLyrics_hook(void* self, Il2CppString* text)
     {
         live_mv_update_lyrics_orig(self, translate_lyric_or_original(text, "LiveMVOverlayView.UpdateLyrics"));
@@ -520,8 +639,10 @@ namespace
         }
         const auto exact_count = exact_result.entries;
         const auto lyric_count = lyric_result.entries;
+        const auto drama_count = load_drama_translations();
         log_line("translations loaded: primary=" + std::to_string(primary_count) +
-            " local2=" + std::to_string(exact_count) + " lyrics=" + std::to_string(lyric_count));
+            " local2=" + std::to_string(exact_count) + " lyrics=" + std::to_string(lyric_count) +
+            " drama=" + std::to_string(drama_count));
 
         HMODULE game_assembly = nullptr;
         for (int attempt = 0; attempt < 2400 && !game_assembly; ++attempt)
@@ -557,6 +678,8 @@ namespace
             return 3;
         }
         log_line("IL2CPP exports resolved");
+        resolve_export(game_assembly, "il2cpp_gc_wbarrier_set_field", il2cpp_gc_wbarrier_set_field);
+        log_ptr("il2cpp_gc_wbarrier_set_field", reinterpret_cast<void*>(il2cpp_gc_wbarrier_set_field));
 
         void* domain = nullptr;
         for (int attempt = 0; attempt < 2400 && !domain; ++attempt)
@@ -602,6 +725,12 @@ namespace
             "PRISM.Legacy.dll", "PRISM", "TimelineController", "SetLyric", 1);
         log_ptr("LiveMVOverlayView.UpdateLyrics", reinterpret_cast<void*>(live_mv_update_lyrics_method));
         log_ptr("TimelineController.SetLyric", reinterpret_cast<void*>(timeline_set_lyric_method));
+
+        const auto drama_subtitle_apply_method = find_method(
+            "PRISM.Interactions.Drama.dll", "PRISM.Interactions.Drama",
+            "DramaSubtitleMixerBehaviour", "Apply", 2);
+        log_ptr("DramaSubtitleMixerBehaviour.Apply",
+            reinterpret_cast<void*>(drama_subtitle_apply_method));
 
         const auto data_file_get_bytes_method = find_method(
             "PRISM.Legacy.dll", "PRISM", "DataFile", "GetBytes", 1);
@@ -652,6 +781,18 @@ namespace
         const bool timeline_lyrics_ok = install_hook(reinterpret_cast<void*>(timeline_set_lyric_method),
             reinterpret_cast<void*>(&TimelineController_SetLyric_hook),
             reinterpret_cast<void**>(&timeline_set_lyric_orig), "TimelineController.SetLyric");
+        bool drama_ok = false;
+        if (drama_subtitle_apply_method && il2cpp_gc_wbarrier_set_field)
+        {
+            drama_ok = install_hook(reinterpret_cast<void*>(drama_subtitle_apply_method),
+                reinterpret_cast<void*>(&DramaSubtitleMixerBehaviour_Apply_hook),
+                reinterpret_cast<void**>(&drama_subtitle_apply_orig),
+                "DramaSubtitleMixerBehaviour.Apply");
+        }
+        else
+        {
+            log_line("drama hook unavailable: Apply or gc write barrier missing");
+        }
         bool scenario_ok = false;
         if (data_file_get_bytes_method && read_all_bytes)
         {
@@ -668,6 +809,7 @@ namespace
             " local2=" + (local2_ok ? "ok" : "failed") +
             " lyricsLive=" + (live_lyrics_ok ? "ok" : "failed") +
             " lyricsTimeline=" + (timeline_lyrics_ok ? "ok" : "failed") +
+            " drama=" + (drama_ok ? "ok" : "failed") +
             " scenario=" + (scenario_ok ? "ok" : "failed"));
         il2cpp_thread_detach(attached_thread);
         log_line("initialization thread detached from IL2CPP");
