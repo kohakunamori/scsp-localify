@@ -164,7 +164,7 @@ namespace debug {
 				}
 			}
 			else if (c == '<' || c == '>' || c == ',') {
-				// flush token ¡ª check for keyword substitution first
+				// flush token ï¿½ï¿½ check for keyword substitution first
 				const char* keyword = TryGetKeywordName(token, currentNamespace);
 				// strip trailing '.' from accumulated namespace before comparing
 				std::string ns = currentNamespace.empty() ? "" : currentNamespace.substr(0, currentNamespace.size() - 1);
@@ -467,16 +467,86 @@ void UnitIdol::InitUnitIdol(void* unitIdolInstance) {
 	}
 }
 
+UnitIdol::UnitIdol(const UnitIdol& other) {
+	CopyFrom(other);
+}
+
+UnitIdol& UnitIdol::operator=(const UnitIdol& other) {
+	CopyFrom(other);
+	return *this;
+}
+
+UnitIdol::UnitIdol(UnitIdol&& other) noexcept {
+	*this = std::move(other);
+}
+
+UnitIdol& UnitIdol::operator=(UnitIdol&& other) noexcept {
+	if (this == &other) return *this;
+	delete[] AccessoryIds;
+	CharaId = other.CharaId;
+	ClothId = other.ClothId;
+	HairId = other.HairId;
+	AccessoryIds = std::exchange(other.AccessoryIds, nullptr);
+	AccessoryIdsLength = std::exchange(other.AccessoryIdsLength, 0);
+	CostumeStatusLoaded = other.CostumeStatusLoaded;
+	CostumeMstCostumeId = other.CostumeMstCostumeId;
+	CostumeMstCharacterInfoId = other.CostumeMstCharacterInfoId;
+	CostumeType = other.CostumeType;
+	CostumeResourceId = other.CostumeResourceId;
+	other.CharaId = -1;
+	other.ClothId = 0;
+	other.HairId = 0;
+	other.CostumeStatusLoaded = false;
+	other.CostumeMstCostumeId = -1;
+	other.CostumeMstCharacterInfoId = -1;
+	other.CostumeType = -1;
+	other.CostumeResourceId = -1;
+	return *this;
+}
+
+void UnitIdol::CopyFrom(const UnitIdol& other) {
+    if (this == &other) return;
+
+    int* copiedAccessoryIds = nullptr;
+    int copiedAccessoryIdsLength = 0;
+    if (other.AccessoryIds != nullptr && other.AccessoryIdsLength > 0) {
+        copiedAccessoryIdsLength = other.AccessoryIdsLength;
+        copiedAccessoryIds = new int[copiedAccessoryIdsLength];
+        for (int i = 0; i < copiedAccessoryIdsLength; ++i) {
+            copiedAccessoryIds[i] = other.AccessoryIds[i];
+        }
+    }
+
+    delete[] AccessoryIds;
+    CharaId = other.CharaId;
+    ClothId = other.ClothId;
+    HairId = other.HairId;
+    AccessoryIds = copiedAccessoryIds;
+    AccessoryIdsLength = copiedAccessoryIdsLength;
+    CostumeStatusLoaded = other.CostumeStatusLoaded;
+    CostumeMstCostumeId = other.CostumeMstCostumeId;
+    CostumeMstCharacterInfoId = other.CostumeMstCharacterInfoId;
+    CostumeType = other.CostumeType;
+    CostumeResourceId = other.CostumeResourceId;
+}
+
+
+
 void UnitIdol::ReadFrom(managed::UnitIdol* managed) {
 	if (AccessoryIds != nullptr) {
 		delete[] AccessoryIds;
+		AccessoryIds = nullptr;
 	}
+	AccessoryIdsLength = 0;
 	InitUnitIdol(managed);
-	void* accessoryIds;
+	void* accessoryIds = nullptr;
 	il2cpp_field_get_value(managed, field_UnitIdol_charaId, &CharaId);
 	il2cpp_field_get_value(managed, field_UnitIdol_clothId, &ClothId);
 	il2cpp_field_get_value(managed, field_UnitIdol_hairId, &HairId);
 	il2cpp_field_get_value(managed, field_UnitIdol_accessoryIds, &accessoryIds);
+	if (accessoryIds == nullptr) {
+		return;
+	}
 	AccessoryIdsLength = il2cpp_array_length(accessoryIds);
 	AccessoryIds = new int[AccessoryIdsLength];
 	for (int i = 0; i < AccessoryIdsLength; ++i) {
@@ -580,6 +650,10 @@ void UnitIdol::LoadJson(const char* json) {
 	rapidjson::ParseResult result = doc.Parse(json);
 	if (!result) {
 		fprintf(stderr, "[ERROR] JSON parse error: %s (%zu)\n", rapidjson::GetParseError_En(result.Code()), result.Offset());
+		return;
+	}
+	if (!doc.IsObject()) {
+		fprintf(stderr, "[ERROR] UnitIdol::LoadJson expects a JSON object.\n");
 		return;
 	}
 	JSON_READ_INT(CharaId);

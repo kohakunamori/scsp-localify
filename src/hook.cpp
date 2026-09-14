@@ -7,9 +7,8 @@
 #include "scgui/scGUIData.hpp"
 #include <scgui/scGUIMain.hpp>
 #include <mhotkey.hpp>
-#include <cpprest/http_client.h>
-#include <cpprest/filestream.h>
-#include <boost/beast/core/detail/base64.hpp>
+#include <urlmon.h>
+#include <wincrypt.h>
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/filewritestream.h>
@@ -183,6 +182,7 @@ void convertPtrType(T* cvtTarget, TF func_ptr) {
 void AddSafetyHook(const char* orig_name, void* orig, void* hook, SafetyHookInline& result) {
 	if (orig == nullptr) {
 		std::cout << "[ERROR] Failed to create hook for \"" << orig_name << "\" (orig=0x" << orig << "): nullptr" << std::endl;
+		full_trace(std::string("hook: ") + orig_name + " target=null");
 		return;
 	}
 	try {
@@ -190,6 +190,7 @@ void AddSafetyHook(const char* orig_name, void* orig, void* hook, SafetyHookInli
 		if (value) {
 			result = std::move(value.value());
 			std::cout << "Hook created for \"" << orig_name << "\" (orig=0x" << orig << ")" << std::endl;
+			full_trace(std::string("hook: ") + orig_name + " created target=" + std::to_string(reinterpret_cast<uintptr_t>(orig)));
 		}
 		else {
 			auto err = value.error();
@@ -201,24 +202,31 @@ void AddSafetyHook(const char* orig_name, void* orig, void* hook, SafetyHookInli
 				std::cout << std::to_string(err.type) << "(" << ((void*)err.ip) << ")";
 			}
 			std::cout << std::endl;
+			full_trace(std::string("hook: ") + orig_name + " create failed");
 			return;
 		}
 	}
 	catch (const std::exception& e) {
 		std::cout << "[ERROR] Failed to create hook for \"" << orig_name << "\" (orig=0x" << orig << "): " << e.what() << std::endl;
+		full_trace(std::string("hook: ") + orig_name + " exception=" + e.what());
 	}
 	catch (...) {
 		std::cout << "[ERROR] Failed to create hook for \"" << orig_name << "\" (orig=0x" << orig << "): unknown exception" << std::endl;
+		full_trace(std::string("hook: ") + orig_name + " unknown exception");
 	}
 }
 #define ADD_HOOK(_name_, _nothing_) AddSafetyHook(#_name_, (void*)_name_##_addr, (void*)_name_##_hook, _name_##_orig);
 #else
 #define ADD_HOOK(_name_, _fmt_) \
 	auto _name_##_offset = reinterpret_cast<void*>(_name_##_addr); \
- 	\
-	const auto _name_##stat1 = MH_CreateHook(_name_##_offset, _name_##_hook, &_name_##_orig); \
-	const auto _name_##stat2 = MH_EnableHook(_name_##_offset); \
-	printf(_fmt_##" (%s, %s)\n", _name_##_offset, MH_StatusToString(_name_##stat1), MH_StatusToString(_name_##stat2))
+	if (_name_##_offset == nullptr) { \
+		printf("[SKIP] "_fmt_": target unavailable\n", _name_##_offset); \
+	} else { \
+		const auto _name_##stat1 = MH_CreateHook(_name_##_offset, _name_##_hook, &_name_##_orig); \
+		const auto _name_##stat2 = (_name_##stat1 == MH_OK || _name_##stat1 == MH_ERROR_ALREADY_CREATED) \
+			? MH_EnableHook(_name_##_offset) : _name_##stat1; \
+		printf(_fmt_##" (%s, %s)\n", _name_##_offset, MH_StatusToString(_name_##stat1), MH_StatusToString(_name_##stat2)); \
+	}
 #endif
 #define ADD_HOOK_1(_name_) ADD_HOOK(_name_, #_name_##" at %p")
 #define ADD_HOOK_ADDR(_raw_assembly_, _raw_namespace_, _raw_class_, _raw_method_, _val_param_count_) \
@@ -390,6 +398,7 @@ namespace
 	void path_game_assembly();
 	void patchNP(HMODULE module);
 	bool mh_inited = false;
+	std::atomic<bool> pathed{ false };
 	void* load_library_w_orig = nullptr;
 	bool (*CloseNPGameMon)();
 
@@ -433,8 +442,16 @@ namespace
 		//	auto ret = reinterpret_cast<decltype(LoadLibraryW)*>(load_library_w_orig)(path);
 		//	return ret;
 		// }
-		else if (path == L"cri_ware_unity.dll"sv) {
-			path_game_assembly();
+		else if (wstring_view(path).find(L"cri_ware_unity.dll") != wstring_view::npos) {
+			// Unity may pass either the bare DLL name or an absolute path here.
+			// Treat cri_ware_unity as a load signal by basename containment so a
+			// late-loaded plugin cannot miss IL2CPP initialization solely because
+			// LoadLibraryW received a fully-qualified path. Once initialization is
+			// claimed, skip repeated cri_ware loads to avoid redundant diagnostics.
+			if (!pathed.load(std::memory_order_acquire)) {
+				full_trace("load_library_w_hook: cri_ware_unity load signal");
+				path_game_assembly();
+			}
 		}
 
 		return reinterpret_cast<decltype(LoadLibraryW)*>(load_library_w_orig)(path);
@@ -481,6 +498,7 @@ namespace
 	void* (*AssetBundle_LoadFromFile)(Il2CppString* path, UINT32 crc, UINT64 offset);
 
 	void* ReplaceFontGcHandle;
+	void* ReplaceTmpFontAssetGcHandle;
 	bool (*Object_IsNativeObjectAlive)(void*);
 	void* (*AssetBundle_LoadAsset)(void* _this, Il2CppString* name, Il2CppReflectionType* type);
 	Il2CppReflectionType* Font_Type;
@@ -541,7 +559,10 @@ namespace
 	bool firstFontUnfoundError = true;
 	void* getReplaceFont() {
 		void* replaceFont{};
-		if (g_custom_font_path.empty()) return replaceFont;
+		if (g_custom_font_path.empty()) {
+			full_trace("font: customFontPath empty");
+			return replaceFont;
+		}
 
 		if (ReplaceFontGcHandle)
 		{
@@ -552,21 +573,29 @@ namespace
 			// AssetBundle 不会被干掉
 			if (Object_IsNativeObjectAlive(replaceFont))
 			{
+				static std::atomic<int> cachedFontTraceCount{ 0 };
+				if (cachedFontTraceCount.fetch_add(1, std::memory_order_relaxed) < 3) {
+					full_trace("font: cached replacement alive ptr=" + std::to_string(reinterpret_cast<uintptr_t>(replaceFont)));
+				}
 				return replaceFont;
 			}
 			else
 			{
+				full_trace("font: cached replacement no longer alive; reloading");
 				il2cpp_gchandle_free(std::exchange(ReplaceFontGcHandle, nullptr));
 			}
 		}
 
+		full_trace("font: loading " + g_custom_font_path);
 		replaceFont = LoadExternAsset(g_custom_font_path, Font_Type);
 		if (replaceFont)
 		{
 			ReplaceFontGcHandle = il2cpp_gchandle_new(replaceFont, false);
+			full_trace("font: replacement loaded ptr=" + std::to_string(reinterpret_cast<uintptr_t>(replaceFont)));
 		}
 		else
 		{
+			full_trace("font: replacement load FAILED");
 			if (firstFontUnfoundError) {
 				firstFontUnfoundError = false;
 				printf("[ERROR] Failed to load the font to replace.\n");
@@ -574,6 +603,229 @@ namespace
 		}
 
 		return replaceFont;
+	}
+
+	void traceTmpFontAssetMutationMethods();
+
+	void* getReplaceTmpFontAsset(void* replaceFont) {
+		traceTmpFontAssetMutationMethods();
+		if (!replaceFont) {
+			return nullptr;
+		}
+
+		if (ReplaceTmpFontAssetGcHandle) {
+			auto cached = il2cpp_gchandle_get_target(ReplaceTmpFontAssetGcHandle);
+			if (cached && (!Object_IsNativeObjectAlive || Object_IsNativeObjectAlive(cached))) {
+				return cached;
+			}
+			full_trace("font: cached TMP_FontAsset no longer alive; recreating");
+			il2cpp_gchandle_free(std::exchange(ReplaceTmpFontAssetGcHandle, nullptr));
+		}
+
+		static auto CreateFontAsset = reinterpret_cast<void* (*)(void*)>(
+			il2cpp_symbols::get_method_pointer(
+				"Unity.TextMeshPro.dll", "TMPro",
+				"TMP_FontAsset", "CreateFontAsset", 1)
+			);
+		if (!CreateFontAsset) {
+			full_trace("font: TMP_FontAsset.CreateFontAsset(Font) unavailable");
+			return nullptr;
+		}
+
+		auto asset = CreateFontAsset(replaceFont);
+		if (!asset) {
+			full_trace("font: TMP_FontAsset.CreateFontAsset(Font) returned null");
+			return nullptr;
+		}
+
+		static auto set_atlasPopulationMode = reinterpret_cast<void (*)(void*, int)>(
+			il2cpp_symbols::get_method_pointer(
+				"Unity.TextMeshPro.dll", "TMPro",
+				"TMP_FontAsset", "set_atlasPopulationMode", 1)
+			);
+		if (set_atlasPopulationMode) {
+			// TMPro.AtlasPopulationMode.Dynamic = 1.
+			set_atlasPopulationMode(asset, 1);
+			full_trace("font: dynamic TMP_FontAsset atlasPopulationMode=Dynamic");
+		}
+		else {
+			full_trace("font: set_atlasPopulationMode unavailable");
+		}
+
+		static const MethodInfo* method_TryAddCharacters_String_Bool = []() -> const MethodInfo* {
+			auto klass = reinterpret_cast<Il2CppClass*>(
+				il2cpp_symbols_logged::get_class(
+					"Unity.TextMeshPro.dll", "TMPro", "TMP_FontAsset"));
+			if (!klass) return nullptr;
+			return il2cpp_symbols::find_method(
+				klass,
+				[](const MethodInfo* method) {
+					if (!method || !method->name ||
+						strcmp(method->name, "TryAddCharacters") != 0 ||
+						il2cpp_method_get_param_count(method) != 2) {
+						return false;
+					}
+					const auto param0 =
+						il2cpp_symbols::il2cpp_method_get_param_type_name(method, 0);
+					return param0 &&
+						(0 == strcmp("String", param0) ||
+						 0 == strcmp("System.String", param0));
+				}
+			);
+		}();
+		if (method_TryAddCharacters_String_Bool &&
+			method_TryAddCharacters_String_Bool->methodPointer) {
+			auto warmup = il2cpp_string_new(
+				reinterpret_cast<const char*>(u8"中汉爱"));
+			bool includeFontFeatures = false;
+			Il2CppObject* args[2]{
+				(Il2CppObject*)warmup,
+				(Il2CppObject*)&includeFontFeatures
+			};
+			auto boxed = reflection::Invoke(
+				method_TryAddCharacters_String_Bool,
+				(Il2CppObject*)asset,
+				args,
+				"TMP_FontAsset.TryAddCharacters(warmup)"
+			);
+			const auto warmupOk = boxed ? boxed->unbox_value<bool>() : false;
+			full_trace("font: TryAddCharacters warmup result=" +
+				std::to_string(warmupOk ? 1 : 0));
+		}
+		else {
+			full_trace("font: TryAddCharacters(String,bool) unavailable");
+		}
+
+		ReplaceTmpFontAssetGcHandle = il2cpp_gchandle_new(asset, false);
+		full_trace("font: dynamic TMP_FontAsset created ptr=" +
+			std::to_string(reinterpret_cast<uintptr_t>(asset)));
+		return asset;
+	}
+
+	const MethodInfo* getTryAddCharactersStringBoolMethod() {
+		static const MethodInfo* method = []() -> const MethodInfo* {
+			auto klass = reinterpret_cast<Il2CppClass*>(
+				il2cpp_symbols_logged::get_class(
+					"Unity.TextMeshPro.dll", "TMPro", "TMP_FontAsset"));
+			if (!klass) return nullptr;
+			return il2cpp_symbols::find_method(
+				klass,
+				[](const MethodInfo* candidate) {
+					if (!candidate || !candidate->name ||
+						strcmp(candidate->name, "TryAddCharacters") != 0 ||
+						il2cpp_method_get_param_count(candidate) != 2) {
+						return false;
+					}
+					const auto param0 =
+						il2cpp_symbols::il2cpp_method_get_param_type_name(candidate, 0);
+					return param0 &&
+						(0 == strcmp("String", param0) ||
+						 0 == strcmp("System.String", param0));
+				}
+			);
+		}();
+		return method;
+	}
+
+	bool ensureTmpFontContainsText(void* fontAsset, Il2CppString* text, const char* context) {
+		if (!fontAsset || !text || text->length == 0) {
+			return false;
+		}
+		auto method = getTryAddCharactersStringBoolMethod();
+		if (!method) {
+			static std::atomic<bool> tracedMissing{ false };
+			if (!tracedMissing.exchange(true, std::memory_order_acq_rel)) {
+				full_trace("font: TryAddCharacters(System.String,bool) unavailable");
+			}
+			return false;
+		}
+		bool includeFontFeatures = false;
+		Il2CppObject* args[2]{
+			(Il2CppObject*)text,
+			(Il2CppObject*)&includeFontFeatures
+		};
+		auto boxed = reflection::Invoke(
+			method,
+			(Il2CppObject*)fontAsset,
+			args,
+			context
+		);
+		return boxed ? boxed->unbox_value<bool>() : false;
+	}
+
+	void traceTmpFontAssetMutationMethods() {
+		static std::atomic<bool> traced{ false };
+		if (traced.exchange(true, std::memory_order_acq_rel)) {
+			return;
+		}
+
+		auto klass = il2cpp_symbols_logged::get_class(
+			"Unity.TextMeshPro.dll", "TMPro", "TMP_FontAsset");
+		if (!klass) {
+			full_trace("font: TMP_FontAsset class unavailable for method inventory");
+			return;
+		}
+
+		void* iter = nullptr;
+		while (auto method = il2cpp_class_get_methods(klass, &iter)) {
+			if (!method || !method->name) {
+				continue;
+			}
+			if (strcmp(method->name, "TryAddCharacters") != 0 &&
+				strcmp(method->name, "TryAddCharacter") != 0 &&
+				strcmp(method->name, "set_atlasPopulationMode") != 0 &&
+				strcmp(method->name, "get_atlasPopulationMode") != 0) {
+				continue;
+			}
+
+			std::string signature("font: TMP_FontAsset.");
+			signature += method->name;
+			signature += "(";
+			const auto argc = il2cpp_method_get_param_count(method);
+			for (uint32_t i = 0; i < argc; ++i) {
+				if (i) signature += ", ";
+				auto paramType = il2cpp_method_get_param(method, i);
+				auto paramName = paramType ? il2cpp_type_get_name(paramType) : nullptr;
+				signature += paramName ? paramName : "?";
+			}
+			signature += ") -> ";
+			auto retType = il2cpp_method_get_return_type(method);
+			auto retName = retType ? il2cpp_type_get_name(retType) : nullptr;
+			signature += retName ? retName : "?";
+			signature += " ptr=" +
+				std::to_string(static_cast<uintptr_t>(method->methodPointer));
+			full_trace(signature);
+		}
+	}
+
+	void traceReplacementFontGlyphs(void* replaceFont) {
+		static std::atomic<bool> traced{ false };
+		if (!replaceFont || traced.exchange(true, std::memory_order_acq_rel)) {
+			return;
+		}
+		static auto method_Font_HasCharacter = il2cpp_symbols_logged::get_method(
+			"UnityEngine.TextRenderingModule.dll", "UnityEngine",
+			"Font", "HasCharacter", 1
+		);
+		if (!method_Font_HasCharacter) {
+			full_trace("font: UnityEngine.Font.HasCharacter unavailable");
+			return;
+		}
+		auto hasGlyph = [&](uint16_t codepoint, const char* label) {
+			auto cp = codepoint;
+			auto pcp = &cp;
+			auto boxed = reflection::Invoke(
+				method_Font_HasCharacter,
+				(Il2CppObject*)replaceFont,
+				(Il2CppObject**)&pcp,
+				label
+			);
+			return boxed ? boxed->unbox_value<bool>() : false;
+			};
+		full_trace("font: source Font glyphs U+4E2D=" +
+			std::to_string(hasGlyph(0x4E2D, "Font.HasCharacter(U+4E2D)")) +
+			" U+6C49=" + std::to_string(hasGlyph(0x6C49, "Font.HasCharacter(U+6C49)")) +
+			" U+7231=" + std::to_string(hasGlyph(0x7231, "Font.HasCharacter(U+7231)")));
 	}
 
 	HOOK_ORIG_TYPE DataFile_GetBytes_orig;
@@ -771,6 +1023,13 @@ namespace
 		itLocalizationManagerDic(_this);
 		std::string resultText = "";
 		if (SCLocal::getLocalifyText(utility::conversions::to_utf8string(category->start_char), id, &resultText)) {
+			static std::atomic<int> primaryTraceCount{ 0 };
+			const auto hit = primaryTraceCount.fetch_add(1, std::memory_order_relaxed);
+			if (hit < 20) {
+				full_trace("primary: hit #" + std::to_string(hit + 1) +
+					" id=" + std::to_string(id) +
+					" textBytes=" + std::to_string(resultText.size()));
+			}
 			//updateDicText(_this, category, id, resultText);
 			return il2cpp_string_new(resultText.c_str());
 		}
@@ -781,11 +1040,22 @@ namespace
 	HOOK_ORIG_TYPE GetResolutionSize_orig;
 	Vector2Int_t GetResolutionSize_hook(void* camera, void* method) {
 		auto ret = HOOK_CAST_CALL(Vector2Int_t, GetResolutionSize)(camera, method);
+		const auto original = ret;
 		if (g_3d_resolution_scale != 1.0f) {
 			ret.x *= g_3d_resolution_scale;
 			ret.y *= g_3d_resolution_scale;
 			SCCamera::currRenderResolution.x = ret.x;
 			SCCamera::currRenderResolution.y = ret.y;
+		}
+		if (g_diagnostic_file_trace) {
+			static std::atomic<int> resolutionTraceCount{ 0 };
+			const auto traceIndex = resolutionTraceCount.fetch_add(1, std::memory_order_relaxed);
+			if (traceIndex < 12) {
+				full_trace("3d-scale: hit #" + std::to_string(traceIndex + 1) +
+					" scale=" + std::to_string(g_3d_resolution_scale) +
+					" original=" + std::to_string(original.x) + "x" + std::to_string(original.y) +
+					" result=" + std::to_string(ret.x) + "x" + std::to_string(ret.y));
+			}
 		}
 		return ret;
 	}
@@ -1370,9 +1640,15 @@ namespace
 
 		unsigned char info[5120];
 		const auto cvString = utility::conversions::to_utf8string(encodedInfo);
-		boost::beast::detail::base64::decode(&info, cvString.c_str(), cvString.size());
+		DWORD decodedSize = static_cast<DWORD>(sizeof(info));
+		if (!CryptStringToBinaryA(
+			cvString.c_str(), static_cast<DWORD>(cvString.size()),
+			CRYPT_STRING_BASE64, info, &decodedSize, nullptr, nullptr)) {
+			printf("Catalog info base64 decode failed: %lu\n", GetLastError());
+			return nullptr;
+		}
 
-		SpanReader reader(info, sizeof(info));
+		SpanReader reader(info, decodedSize);
 
 		const auto checksum = reader.ReadUInt64();
 		const auto size = reader.ReadVarUInt64();
@@ -1414,22 +1690,16 @@ namespace
 			}
 
 			const auto url = std::format(L"https://asset.imassc.song4.prism.bn765.com/r/{}/{}", fileName.substr(0, 2), fileName);
-			web::http::client::http_client_config cfg;
-			cfg.set_timeout(utility::seconds(30));
-			web::http::client::http_client client(url, cfg);
-			auto response = client.request(web::http::methods::GET).get();
-			if (response.status_code() != 200) {
-				wprintf(L"File download failed: %ls (%d)\n", url.c_str(), response.status_code());
+			std::filesystem::create_directories(filePath.parent_path());
+			const HRESULT hr = URLDownloadToFileW(nullptr, url.c_str(), filePath.c_str(), 0, nullptr);
+			if (FAILED(hr)) {
+				std::error_code ec;
+				std::filesystem::remove(filePath, ec);
+				wprintf(L"File download failed: %ls (HRESULT=0x%08lX)\n", url.c_str(), static_cast<unsigned long>(hr));
 				return NULL;
 			}
-
-			concurrency::streams::fstream::open_ostream(filePath.c_str()).then([=](concurrency::streams::ostream output_stream) {
-				return response.body().read_to_end(output_stream.streambuf());
-				}).then([=](size_t) {
-					wprintf(L"File downloaded successfully: %ls\n", filePath.c_str());
-					}).wait();
-
-				return readFileAllBytes(filePath);
+			wprintf(L"File downloaded successfully: %ls\n", filePath.c_str());
+			return readFileAllBytes(filePath);
 		}
 		catch (std::exception& e) {
 			printf("checkAndDownloadFile error: %s\n", e.what());
@@ -1683,6 +1953,16 @@ namespace
 	void LiveMVOverlayView_UpdateLyrics_hook(void* _this, Il2CppString* text) {
 		const std::wstring origWstr(text->start_char);
 		const auto newText = SCLocal::getLyricsTrans(origWstr);
+		static std::atomic<int> lyricOverlayTraceCount{ 0 };
+		const auto traceIndex =
+			lyricOverlayTraceCount.fetch_add(1, std::memory_order_relaxed);
+		if (traceIndex < 20) {
+			full_trace(
+				"lyrics: overlay hit #" + std::to_string(traceIndex + 1) +
+				" sourceChars=" + std::to_string(origWstr.size()) +
+				" translatedBytes=" + std::to_string(newText.size())
+			);
+		}
 		return HOOK_CAST_CALL(void, LiveMVOverlayView_UpdateLyrics)(_this, il2cpp_string_new(newText.c_str()));
 	}
 
@@ -1701,6 +1981,16 @@ namespace
 				newText = lastLrc.second;
 			}
 		}
+		static std::atomic<int> lyricTimelineTraceCount{ 0 };
+		const auto traceIndex =
+			lyricTimelineTraceCount.fetch_add(1, std::memory_order_relaxed);
+		if (traceIndex < 20) {
+			full_trace(
+				"lyrics: timeline hit #" + std::to_string(traceIndex + 1) +
+				" sourceChars=" + std::to_string(origWstr.size()) +
+				" translatedBytes=" + std::to_string(newText.size())
+			);
+		}
 		return HOOK_CAST_CALL(void, TimelineController_SetLyric)(_this, il2cpp_string_new(newText.c_str()));
 	}
 
@@ -1711,6 +2001,36 @@ namespace
 			//printf("%ls\n\n", environment_get_stacktrace()->start_char);
 		}
 		//if(value) value = il2cpp_symbols::NewWStr(std::format(L"(h){}", std::wstring(value->start_char)));
+		if (value && !g_custom_font_path.empty()) {
+			auto replaceFont = getReplaceFont();
+			auto replacementTmpFont = getReplaceTmpFontAsset(replaceFont);
+			if (replacementTmpFont) {
+				const auto added = ensureTmpFontContainsText(
+					replacementTmpFont,
+					value,
+					"TMP_Text.set_text|TryAddCharacters"
+				);
+				static auto set_font = reinterpret_cast<void (*)(void*, void*)>(
+					il2cpp_symbols::get_method_pointer(
+						"Unity.TextMeshPro.dll", "TMPro",
+						"TMP_Text", "set_font", 1)
+					);
+				if (set_font) {
+					set_font(_this, replacementTmpFont);
+				}
+				static std::atomic<int> textGlyphTraceCount{ 0 };
+				const auto traceIndex =
+					textGlyphTraceCount.fetch_add(1, std::memory_order_relaxed);
+				if (traceIndex < 20) {
+					full_trace(
+						"font: TMP_Text.set_text glyph ensure #" +
+						std::to_string(traceIndex + 1) +
+						" chars=" + std::to_string(value->length) +
+						" result=" + std::to_string(added ? 1 : 0)
+					);
+				}
+			}
+		}
 		HOOK_CAST_CALL(void, TMP_Text_set_text)(
 			_this, value
 			);
@@ -1749,6 +2069,13 @@ namespace
 
 	HOOK_ORIG_TYPE UITextMeshProUGUI_Awake_orig;
 	void UITextMeshProUGUI_Awake_hook(void* _this) {
+		static std::atomic<int> awakeTraceCount{ 0 };
+		const auto awakeIndex = awakeTraceCount.fetch_add(1, std::memory_order_relaxed) + 1;
+		const bool traceAwake = awakeIndex <= 20;
+		if (traceAwake) {
+			full_trace("font: UITextMeshProUGUI.Awake #" + std::to_string(awakeIndex) +
+				" self=" + std::to_string(reinterpret_cast<uintptr_t>(_this)));
+		}
 		static auto get_Text = reinterpret_cast<Il2CppString * (*)(void*)>(
 			il2cpp_symbols::get_method_pointer(
 				"PRISM.Legacy.dll", "ENTERPRISE.UI",
@@ -1768,6 +2095,10 @@ namespace
 			if (!get_NeedsLocalization_func(_this)) {
 				std::string newTrans("");
 				if (SCLocal::getGameUnlocalTrans(std::wstring(origText->start_char), &newTrans)) {
+					if (traceAwake) {
+						full_trace("local2: Awake #" + std::to_string(awakeIndex) +
+							" translated bytes=" + std::to_string(newTrans.size()));
+					}
 					set_Text(_this, il2cpp_string_new(newTrans.c_str()));
 				}
 			}
@@ -1784,6 +2115,14 @@ namespace
 			il2cpp_symbols::get_method_pointer("Unity.TextMeshPro.dll", "TMPro",
 				"TMP_FontAsset", "UpdateFontAssetData", 0)
 			);
+		static auto set_font = reinterpret_cast<void (*)(void*, void*)>(
+			il2cpp_symbols::get_method_pointer("Unity.TextMeshPro.dll", "TMPro",
+				"TMP_Text", "set_font", 1)
+			);
+		static auto method_TMP_FontAsset_HasCharacter = il2cpp_symbols_logged::get_method(
+			"Unity.TextMeshPro.dll", "TMPro",
+			"TMP_FontAsset", "HasCharacter", 1
+			);
 		static auto set_fontSize = reinterpret_cast<void (*)(void*, float)>(
 			il2cpp_symbols::get_method_pointer("Unity.TextMeshPro.dll", "TMPro",
 				"TMP_Text", "set_fontSize", 1)
@@ -1793,13 +2132,74 @@ namespace
 				"TMP_Text", "get_fontSize", 0)
 			);
 
+		void* appliedTmpFont = nullptr;
 		auto replaceFont = getReplaceFont();
 		if (replaceFont) {
+			traceReplacementFontGlyphs(replaceFont);
 			auto origFont = TMP_Text_get_font(_this);
-			set_sourceFontFile(origFont, replaceFont);
-			if (!updatedFontPtrs.contains(origFont)) {
-				updatedFontPtrs.emplace(origFont);
-				UpdateFontAssetData(origFont);
+			auto replacementTmpFont = getReplaceTmpFontAsset(replaceFont);
+			if (traceAwake) {
+				full_trace("font: Awake #" + std::to_string(awakeIndex) +
+					" replacement=" + std::to_string(reinterpret_cast<uintptr_t>(replaceFont)) +
+					" tmpFont=" + std::to_string(reinterpret_cast<uintptr_t>(origFont)) +
+					" replacementTmpFont=" + std::to_string(reinterpret_cast<uintptr_t>(replacementTmpFont)));
+			}
+			if (replacementTmpFont && set_font) {
+				auto currentText = get_Text(_this);
+				if (currentText) {
+					const auto added = ensureTmpFontContainsText(
+						replacementTmpFont,
+						currentText,
+						"UITextMeshProUGUI.Awake|TryAddCharacters"
+					);
+					if (traceAwake) {
+						full_trace(
+							"font: Awake #" + std::to_string(awakeIndex) +
+							" current text glyph ensure result=" +
+							std::to_string(added ? 1 : 0)
+						);
+					}
+				}
+				set_font(_this, replacementTmpFont);
+				appliedTmpFont = replacementTmpFont;
+				if (traceAwake) {
+					full_trace("font: Awake #" + std::to_string(awakeIndex) +
+						" TMP_Text.set_font(dynamic asset) applied");
+				}
+			}
+			else if (origFont) {
+				// Fallback for environments where CreateFontAsset(Font) is unavailable.
+				set_sourceFontFile(origFont, replaceFont);
+				if (!updatedFontPtrs.contains(origFont)) {
+					updatedFontPtrs.emplace(origFont);
+					UpdateFontAssetData(origFont);
+					if (traceAwake) {
+						full_trace("font: Awake #" + std::to_string(awakeIndex) + " UpdateFontAssetData applied");
+					}
+				}
+			}
+			if (traceAwake && method_TMP_FontAsset_HasCharacter) {
+				auto glyphAsset = replacementTmpFont ? replacementTmpFont : origFont;
+				if (glyphAsset) {
+					auto hasGlyph = [&](uint32_t codepoint, const char* label) {
+						auto cp = codepoint;
+						auto pcp = &cp;
+						auto boxed = reflection::Invoke(
+							method_TMP_FontAsset_HasCharacter,
+							(Il2CppObject*)glyphAsset,
+							(Il2CppObject**)&pcp,
+							label
+						);
+						return boxed ? boxed->unbox_value<bool>() : false;
+						};
+					full_trace("font: Awake #" + std::to_string(awakeIndex) +
+						" glyphs U+4E2D=" + std::to_string(hasGlyph(0x4E2D, "TMP_FontAsset.HasCharacter(U+4E2D)")) +
+						" U+6C49=" + std::to_string(hasGlyph(0x6C49, "TMP_FontAsset.HasCharacter(U+6C49)")) +
+						" U+7231=" + std::to_string(hasGlyph(0x7231, "TMP_FontAsset.HasCharacter(U+7231)")));
+				}
+			}
+			if (traceAwake && !origFont && !replacementTmpFont) {
+				full_trace("font: Awake #" + std::to_string(awakeIndex) + " TMP_Text.get_font returned null");
 			}
 			/*
 			if (origFont != lastUpdateFontPtr) {
@@ -1809,10 +2209,26 @@ namespace
 		}
 		set_fontSize(_this, get_fontSize(_this) + g_font_size_offset);
 		HOOK_CAST_CALL(void, UITextMeshProUGUI_Awake)(_this);
+		if (appliedTmpFont && set_font) {
+			set_font(_this, appliedTmpFont);
+			if (traceAwake) {
+				full_trace("font: Awake #" + std::to_string(awakeIndex) +
+					" TMP_Text.set_font(dynamic asset) re-applied after original Awake");
+			}
+		}
 	}
 
 	HOOK_ORIG_TYPE ScenarioManager_Init_orig;
 	void* ScenarioManager_Init_hook(void* retstr, void* _this, Il2CppString* scrName) {
+		static std::atomic<int> scenarioInitTraceCount{ 0 };
+		const auto traceIndex =
+			scenarioInitTraceCount.fetch_add(1, std::memory_order_relaxed);
+		if (traceIndex < 20 && scrName) {
+			full_trace(
+				"scenario: init #" + std::to_string(traceIndex + 1) +
+				" chars=" + std::to_string(scrName->length)
+			);
+		}
 		// printf("ScenarioManager_Init: %ls\n%ls\n\n", scrName->start_char, environment_get_stacktrace()->start_char);
 		return HOOK_CAST_CALL(void*, ScenarioManager_Init)(retstr, _this, scrName);
 	}
@@ -1825,6 +2241,16 @@ namespace
 
 		std::filesystem::path localFileName;
 		if (SCLocal::getLocalFileName(pathStr, &localFileName)) {
+			static std::atomic<int> scenarioLocalFileTraceCount{ 0 };
+			const auto traceIndex =
+				scenarioLocalFileTraceCount.fetch_add(1, std::memory_order_relaxed);
+			if (traceIndex < 40) {
+				full_trace(
+					"scenario: local DataFile hit #" + std::to_string(traceIndex + 1) +
+					" pathChars=" + std::to_string(pathStr.size()) +
+					" file=" + localFileName.generic_string()
+				);
+			}
 			return readFileAllBytes(localFileName);
 		}
 
@@ -2161,12 +2587,33 @@ namespace
 
 					UnitIdol idol;
 					idol.ReadFrom(item);
+					int sameCharaCount = 0;
+					for (int j = 0; j < idolsLength; ++j) {
+						auto other = (managed::UnitIdol*)il2cpp_symbols::array_get_value(onStageIdols, j);
+						UnitIdol::InitUnitIdol(other);
+						int otherCharaId = -1;
+						il2cpp_field_get_value(other, UnitIdol::field_UnitIdol_charaId, &otherCharaId);
+						if (otherCharaId == idol.CharaId) {
+							++sameCharaCount;
+						}
+					}
 
 					auto it = savedCostumes.find(idol.CharaId);
-					if (it != savedCostumes.end()) {
+					if (it != savedCostumes.end() && sameCharaCount <= 1) {
 						it->second.ApplyTo(item, true);
 						std::cout << "CharaId " << it->first << " has been modified." << std::endl;
 					}
+					else if (it != savedCostumes.end() && sameCharaCount > 1) {
+						// savedCostumes is keyed only by CharaId.  Applying that cache to a
+						// duplicate-idol unit would necessarily fan the last edited costume
+						// out to every occurrence of the same idol.  Preserve each stage
+						// slot's own costume instead; explicit Override-MV slots below are
+						// position-aware and remain authoritative when configured.
+						if (g_diagnostic_file_trace) {
+							printf("costume-cache: duplicate idol detected; preserving per-slot costume.\n");
+						}
+					}
+					idol.Clear();
 				}
 			}
 			if (g_overrie_mv_unit_idols) {
@@ -2194,7 +2641,7 @@ namespace
 		if (g_override_isVocalSeparatedOn) {
 			vocalSeparatedMode = 1;
 		}
-		HOOK_CAST_CALL(void*, LiveMVStartData_ctor)(_this, mvStage, sceneName, onStageIdols, cameraworkConfig, vocalSeparatedMode, vocalSeparatedSoloIndex, renderingDynamicRange, soundEffectMode, isSortIdols);
+		HOOK_CAST_CALL(void, LiveMVStartData_ctor)(_this, mvStage, sceneName, onStageIdols, cameraworkConfig, vocalSeparatedMode, vocalSeparatedSoloIndex, renderingDynamicRange, soundEffectMode, isSortIdols);
 	}
 
 	void* GetLiveStartDataOnStageIdols(Il2CppObject* data) {
@@ -2484,10 +2931,44 @@ namespace
 
 	HOOK_ORIG_TYPE LiveMVUnit_GetMemberChangeRequestData_orig;
 	void* LiveMVUnit_GetMemberChangeRequestData_hook(void* _this, int position, void* idol, int exchangePosition) {
-		if (g_allow_same_idol) {  // 此方法已过时
+		if (g_allow_same_idol) {
 			exchangePosition = -1;
 		}
 		return HOOK_CAST_CALL(void*, LiveMVUnit_GetMemberChangeRequestData)(_this, position, idol, exchangePosition);
+	}
+
+	// SCSP 2.17 regular-Live member selection marks a candidate as BuiltIn by
+	// searching the current unit with LiveIdol.IsSame from
+	// LiveUnitMemberChangeViewModel.<>c__DisplayClass16_2.<.ctor>b__5.
+	// Returning false only for this duplicate-search predicate keeps the
+	// separate original-idol comparison intact, so the currently edited member
+	// still receives PositionType=Setting while the same idol in another slot is
+	// no longer rejected as PositionType=BuiltIn.
+	HOOK_ORIG_TYPE LiveUnitMemberChangeViewModel_sameIdolPredicate_orig;
+	bool LiveUnitMemberChangeViewModel_sameIdolPredicate_hook(void* _this, void* idol, void* method) {
+		if (g_allow_same_idol) {
+			static std::atomic<int> traceCount{ 0 };
+			if (g_diagnostic_file_trace && traceCount.fetch_add(1, std::memory_order_relaxed) < 12) {
+				full_trace("same-idol: regular Live duplicate predicate bypassed");
+			}
+			return false;
+		}
+		return HOOK_CAST_CALL(bool, LiveUnitMemberChangeViewModel_sameIdolPredicate)(_this, idol, method);
+	}
+
+	FieldInfo* LiveMvIdolListIdolViewModel_IsInSameUnit_field = nullptr;
+	HOOK_ORIG_TYPE LiveMvUnitMemberChangeViewModel_buildIdolViewModel_orig;
+	void* LiveMvUnitMemberChangeViewModel_buildIdolViewModel_hook(void* _this, void* idol, void* method) {
+		auto ret = HOOK_CAST_CALL(void*, LiveMvUnitMemberChangeViewModel_buildIdolViewModel)(_this, idol, method);
+		if (g_allow_same_idol && ret && LiveMvIdolListIdolViewModel_IsInSameUnit_field) {
+			bool isInSameUnit = false;
+			il2cpp_field_set_value(ret, LiveMvIdolListIdolViewModel_IsInSameUnit_field, &isInSameUnit);
+			static std::atomic<int> traceCount{ 0 };
+			if (g_diagnostic_file_trace && traceCount.fetch_add(1, std::memory_order_relaxed) < 12) {
+				full_trace("same-idol: MV IsInSameUnit cleared");
+			}
+		}
+		return ret;
 	}
 
 	int slotNewCount = 0;
@@ -2652,6 +3133,15 @@ namespace
 			}
 			if (g_enable_free_camera) {
 				const auto fov = SCCamera::baseCamera.fov;
+				if (g_diagnostic_file_trace) {
+					static std::atomic<int> freeCameraFovTraceCount{ 0 };
+					const auto traceIndex = freeCameraFovTraceCount.fetch_add(1, std::memory_order_relaxed);
+					if (traceIndex < 12) {
+						full_trace("free-camera: FOV override #" + std::to_string(traceIndex + 1) +
+							" original=" + std::to_string(origFov) +
+							" result=" + std::to_string(fov));
+					}
+				}
 				Unity_set_fieldOfView_hook(_this, fov);
 				return fov;
 			}
@@ -2812,6 +3302,14 @@ namespace
 		if (transform) {
 			baseCameraTransform = transform;
 			baseCamera = ret;
+			if (g_diagnostic_file_trace) {
+				static std::atomic<int> baseCameraTraceCount{ 0 };
+				const auto traceIndex = baseCameraTraceCount.fetch_add(1, std::memory_order_relaxed);
+				if (traceIndex < 8) {
+					full_trace("free-camera: base camera captured #" + std::to_string(traceIndex + 1) +
+						" enabled=" + std::to_string(g_enable_free_camera ? 1 : 0));
+				}
+			}
 		}
 
 		return ret;
@@ -2820,16 +3318,41 @@ namespace
 	uintptr_t GetSubject_OnNext_addr() {
 		// var managedGenericArguments = [typeof(PRISM.Adapters.CostumeChange.CostumeChangeViewModel)];
 		auto refltype_CostumeChangeViewModel = reflection::typeof("PRISM.Adapters.dll", "PRISM.Adapters.CostumeChange", "CostumeChangeViewModel");
+		if (!refltype_CostumeChangeViewModel) {
+			std::cout << "[feature:costume-save-replace] CostumeChangeViewModel reflection type unavailable; Subject.OnNext hook disabled." << std::endl;
+			return 0;
+		}
 		auto managedGenericArguments = reflection::CreateManagedTypeArray({ refltype_CostumeChangeViewModel });
+		if (!managedGenericArguments) {
+			std::cout << "[feature:costume-save-replace] managed generic argument array unavailable; Subject.OnNext hook disabled." << std::endl;
+			return 0;
+		}
 
 		// var refltype_Subject_closed = RuntimeType.MakeGenericType(typeof(UniRx.Subject<>), managedGenericArguments);
 		auto method_RuntimeType_MakeGenericType_2 = il2cpp_symbols_logged::get_method_corlib("System", "RuntimeType", "MakeGenericType", 2);
 		auto refltype_Subject_T = reflection::typeof("UniRx.dll", "UniRx", "Subject`1");
+		if (!method_RuntimeType_MakeGenericType_2 || !refltype_Subject_T) {
+			std::cout << "[feature:costume-save-replace] generic Subject reflection prerequisites unavailable; Subject.OnNext hook disabled." << std::endl;
+			return 0;
+		}
 		Il2CppObject* args_RuntimeType_MakeGenericType_2[2]{ refltype_Subject_T, managedGenericArguments };
 		auto refltype_Subject_closed = (Il2CppReflectionType*)reflection::Invoke(method_RuntimeType_MakeGenericType_2, nullptr, args_RuntimeType_MakeGenericType_2, "RuntimeType::MakeGenericType(2)");
+		if (!refltype_Subject_closed) {
+			std::cout << "[feature:costume-save-replace] failed to close UniRx.Subject<CostumeChangeViewModel>; Subject.OnNext hook disabled." << std::endl;
+			return 0;
+		}
 
 		// var method_Subject_OnNext = refltype_Subject_closed.GetMethod("OnNext");
-		auto method_Subject_OnNext = il2cpp_class_get_method_from_name(il2cpp_class_from_system_type(refltype_Subject_closed), "OnNext", 1);
+		auto subject_klass = il2cpp_class_from_system_type(refltype_Subject_closed);
+		if (!subject_klass) {
+			std::cout << "[feature:costume-save-replace] closed Subject class unavailable; Subject.OnNext hook disabled." << std::endl;
+			return 0;
+		}
+		auto method_Subject_OnNext = il2cpp_class_get_method_from_name(subject_klass, "OnNext", 1);
+		if (!method_Subject_OnNext || !method_Subject_OnNext->methodPointer) {
+			std::cout << "[feature:costume-save-replace] Subject.OnNext method unavailable; hook disabled." << std::endl;
+			return 0;
+		}
 
 		return method_Subject_OnNext->methodPointer;
 	}
@@ -2891,9 +3414,10 @@ namespace
 				data.Print(std::cout);
 
 				if (data.CharaId >= 0)
-					savedCostumes[data.CharaId] = data;
+					savedCostumes[data.CharaId].CopyFrom(data);
 
-				lastSavedCostume = data;
+				lastSavedCostume.CopyFrom(data);
+				data.Clear();
 			}
 			__except (seh_filter(GetExceptionInformation())) {
 				printf("SEH exception detected in 'CostumeChangeView_Reload_hook'.\n");
@@ -3021,10 +3545,17 @@ namespace
 	void (*fp_CostumeChangeViewModel_Apply)(void* _this);
 
 	HOOK_DEF(void, CostumeChangeViewModel__ctor)(void* _this, void* parameter, int characterId, void* settingCostumeSet, bool isAllDressOrdered, bool isEnableDressOrderTab, void* defaultCostumeSet) {
-		if (g_show_hidden_costumes) {
+		if (g_show_hidden_costumes || g_unlock_all_dress) {
 			isAllDressOrdered = true;
 		}
 		HOOK_CAST_CALL(void, CostumeChangeViewModel__ctor)(_this, parameter, characterId, settingCostumeSet, isAllDressOrdered, isEnableDressOrderTab, defaultCostumeSet);
+	}
+
+	HOOK_DEF(bool, CostumeStatusExtensions_CanWear)(void* status, int characterId, bool isAllDressOrdered) {
+		if (g_unlock_all_dress) {
+			return true;
+		}
+		return HOOK_CAST_CALL(bool, CostumeStatusExtensions_CanWear)(status, characterId, isAllDressOrdered);
 	}
 
 	HOOK_DEF(bool, CostumeChangeViewModel_CanDecide0)(void* _this) {
@@ -3053,6 +3584,7 @@ namespace
 			it->second.ApplyTo(previewUnitIdol, false);
 			std::cout << "CharaId " << it->first << " has been modified." << std::endl;
 		}
+		idolData.Clear();
 
 		HOOK_CAST_CALL(void, CostumeChangeViewModel_RefreshViewModels)(_this);
 	}
@@ -3096,6 +3628,7 @@ namespace
 
 	HOOK_ORIG_TYPE DMMGameGuard_NPGameMonCallback_orig;
 	int DMMGameGuard_NPGameMonCallback_hook(UINT dwMsg, UINT dwArg) {
+		full_trace("GameGuard NPGameMonCallback msg=" + std::to_string(dwMsg) + " arg=" + std::to_string(dwArg));
 		// printf("DMMGameGuard_NPGameMonCallback: dwMsg: %u, dwArg: %u\n%ls\n\n", dwMsg, dwArg, environment_get_stacktrace()->start_char);
 		return 1;
 		// return HOOK_CAST_CALL(void, DMMGameGuard_NPGameMonCallback)(dwMsg, dwArg);
@@ -3113,6 +3646,11 @@ namespace
 
 	HOOK_ORIG_TYPE Unity_Quit_orig;
 	void Unity_Quit_hook(int code) {
+		full_trace("Application.Quit intercepted code=" + std::to_string(code));
+		if (g_diagnostic_suppress_application_quit) {
+			full_trace("Application.Quit suppressed by SafeSmoke diagnostic");
+			return;
+		}
 		printf("Quit code: %d\n", code);
 		TerminateProcess(GetCurrentProcess(), 0);
 		// printf("Quit code: %d\n%ls\n\n", code, environment_get_stacktrace()->start_char);
@@ -3190,7 +3728,6 @@ namespace
 		printf("DMMGameGuardData: isCheck: %d, isInit: %d, bAppExit: %d, errCode: %d\n\n", isCheck, isInit, bAppExit, errCode);
 	}
 
-	bool pathed = false;
 	bool npPatched = false;
 
 	void patchNP(HMODULE module) {
@@ -3218,27 +3755,37 @@ namespace
 	int retryCount = 0;
 	void path_game_assembly()
 	{
-		if (!mh_inited)
+		if (!mh_inited) {
+			full_trace("path_game_assembly: skipped because mh_inited=false");
 			return;
+		}
+		if (pathed.load(std::memory_order_acquire)) return;
+		full_trace("path_game_assembly: enter");
 
 		auto il2cpp_module = GetModuleHandle("GameAssembly.dll");
 		if (!il2cpp_module) {
+			full_trace("path_game_assembly: GameAssembly.dll not loaded");
 			printf("GameAssembly.dll not loaded.\n");
 			retryCount++;
 			if (retryCount == 15) {
 				reopen_self();
-				return;
 			}
+			return;
 		}
 
-		if (pathed) return;
-		pathed = true;
+		bool expected = false;
+		if (!pathed.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+			full_trace("path_game_assembly: initialization already claimed");
+			return;
+		}
 
+		full_trace("path_game_assembly: GameAssembly.dll found; resolving IL2CPP");
 		printf("Trying to patch GameAssembly.dll...\n");
 		initcharaSwayStringOffset();
 
 		// load il2cpp exported functions
 		il2cpp_symbols::init(il2cpp_module);
+		full_trace("path_game_assembly: il2cpp_symbols::init done");
 
 #pragma region HOOK_ADDRESSES
 
@@ -3469,6 +4016,47 @@ namespace
 			"MvUnitSlotGenerator", "NewMvUnitSlot", 2
 		);
 
+		// SCSP 2.17 same-idol paths.  The regular-Live predicate is the exact
+		// duplicate search used while constructing member-change cells.  The MV
+		// path builds LiveMvIdolListIdolViewModel rows and exposes duplicate state
+		// through its public readonly IsInSameUnit field.
+		uintptr_t LiveUnitMemberChangeViewModel_sameIdolPredicate_addr = 0;
+		auto LiveUnitMemberChangeViewModel_klass = il2cpp_symbols::get_class(
+			"PRISM.Adapters.dll", "PRISM.Adapters", "LiveUnitMemberChangeViewModel");
+		if (LiveUnitMemberChangeViewModel_klass) {
+			auto displayClass = il2cpp_symbols::find_nested_class_from_name(
+				LiveUnitMemberChangeViewModel_klass, "<>c__DisplayClass16_2");
+			if (displayClass) {
+				auto method = il2cpp_class_get_method_from_name(displayClass, "<.ctor>b__5", 1);
+				if (method) LiveUnitMemberChangeViewModel_sameIdolPredicate_addr = method->methodPointer;
+			}
+		}
+		if (!LiveUnitMemberChangeViewModel_sameIdolPredicate_addr) {
+			printf("LiveUnitMemberChangeViewModel same-idol predicate not found.\n");
+		}
+
+		uintptr_t LiveMvUnitMemberChangeViewModel_buildIdolViewModel_addr = 0;
+		auto LiveMvUnitMemberChangeViewModel_klass = il2cpp_symbols::get_class(
+			"PRISM.Adapters.dll", "PRISM.Adapters", "LiveMvUnitMemberChangeViewModel");
+		if (LiveMvUnitMemberChangeViewModel_klass) {
+			auto displayClass = il2cpp_symbols::find_nested_class_from_name(
+				LiveMvUnitMemberChangeViewModel_klass, "<>c__DisplayClass7_0");
+			if (displayClass) {
+				auto method = il2cpp_class_get_method_from_name(displayClass, "<.ctor>b__4", 1);
+				if (method) LiveMvUnitMemberChangeViewModel_buildIdolViewModel_addr = method->methodPointer;
+			}
+		}
+		auto LiveMvIdolListIdolViewModel_klass = il2cpp_symbols::get_class(
+			"PRISM.Adapters.dll", "PRISM.Adapters", "LiveMvIdolListIdolViewModel");
+		if (LiveMvIdolListIdolViewModel_klass) {
+			LiveMvIdolListIdolViewModel_IsInSameUnit_field =
+				il2cpp_class_get_field_from_name(LiveMvIdolListIdolViewModel_klass, "IsInSameUnit");
+		}
+		if (!LiveMvUnitMemberChangeViewModel_buildIdolViewModel_addr ||
+			!LiveMvIdolListIdolViewModel_IsInSameUnit_field) {
+			printf("LiveMvUnitMemberChangeViewModel same-idol path incomplete.\n");
+		}
+
 		//auto CheckVocalSeparatedSatisfy_addr = il2cpp_symbols::get_method_pointer(
 		//	"PRISM.Legacy.dll", "PRISM.Live",
 		//	"MusicData", "CheckVocalSeparatedSatisfy", 1
@@ -3619,8 +4207,19 @@ namespace
 			"CostumeChangeViewModel", "CanDecide", 2
 		);
 
+		auto CostumeStatusExtensions_CanWear_addr = il2cpp_symbols_logged::get_method_pointer(
+			"PRISM.Legacy.dll", "PRISM.Domain",
+			"CostumeStatusExtensions", "CanWear", 3
+		);
+
 #pragma endregion
+		full_trace("path_game_assembly: installing active hooks");
 		ADD_HOOK(SetResolution, "SetResolution at %p");
+		if (g_start_resolution_w >= 0 && g_start_resolution_h >= 0) {
+			isFirstTimeSetResolution = false;
+			full_trace("resolution: applying configured start " + std::to_string(g_start_resolution_w) + "x" + std::to_string(g_start_resolution_h));
+			HOOK_CAST_CALL(void, SetResolution)(g_start_resolution_w, g_start_resolution_h, g_start_resolution_fullScreen);
+		}
 		ADD_HOOK_1(StoryExtensions_IsLocked);
 		ADD_HOOK(LocalizationManager_GetTextOrNull, "LocalizationManager_GetTextOrNull at %p");
 		ADD_HOOK(GetResolutionSize, "GetResolutionSize at %p");
@@ -3669,6 +4268,8 @@ namespace
 		ADD_HOOK(LiveMVUnit_GetMemberChangeRequestData, "LiveMVUnit_GetMemberChangeRequestData at %p");
 		ADD_HOOK(LiveMVUnitMemberChangePresenter_initializeAsync_b_4_MoveNext, "LiveMVUnitMemberChangePresenter_initializeAsync_b_4_MoveNext at %p");
 		ADD_HOOK(MvUnitSlotGenerator_NewMvUnitSlot, "MvUnitSlotGenerator_NewMvUnitSlot at %p");
+		ADD_HOOK(LiveUnitMemberChangeViewModel_sameIdolPredicate, "LiveUnitMemberChangeViewModel same-idol predicate at %p");
+		ADD_HOOK(LiveMvUnitMemberChangeViewModel_buildIdolViewModel, "LiveMvUnitMemberChangeViewModel idol-row builder at %p");
 		//ADD_HOOK(CheckVocalSeparatedSatisfy, "CheckVocalSeparatedSatisfy at %p");
 		//ADD_HOOK(CheckLimitedVocalSeparatedSatisfy_2, "CheckLimitedVocalSeparatedSatisfy_2 at %p");
 		ADD_HOOK(CriWareErrorHandler_HandleMessage, "CriWareErrorHandler_HandleMessage at %p");
@@ -3695,8 +4296,10 @@ namespace
 		ADD_HOOK_1(CostumeChangeViewModel__ctor);
 		ADD_HOOK_1(CostumeChangeViewModel_CanDecide0);
 		ADD_HOOK_1(CostumeChangeViewModel_CanDecide2);
+		ADD_HOOK_1(CostumeStatusExtensions_CanWear);
 		ADD_HOOK_ADDR(PRISM.Adapters.dll, PRISM.Adapters.CostumeChange, CostumeChangeViewModel, RefreshViewModels, 0);
 		ADD_HOOK_ADDR(PRISM.Adapters.dll, PRISM.Adapters.CostumeChange, CostumeChangeViewModel, ModifyPreview, 1);
+		full_trace("path_game_assembly: active hooks installed");
 
 		tools::AddNetworkingHooks();
 
@@ -3708,6 +4311,7 @@ namespace
 			// needPrintStack = !needPrintStack;
 			};
 		SCCamera::initCameraSettings();
+		full_trace("path_game_assembly: camera settings initialized");
 		g_on_hook_ready();
 
 		const auto gameVersionInfo = getGameVersions();
@@ -3726,11 +4330,15 @@ void uninit_hook()
 
 bool init_hook()
 {
+	full_trace("init_hook: begin");
 	if (mh_inited)
 		return false;
 
-	if (MH_Initialize() != MH_OK)
+	if (MH_Initialize() != MH_OK) {
+		full_trace("init_hook: MH_Initialize failed");
 		return false;
+	}
+	full_trace("init_hook: MH_Initialize ok");
 
 	g_on_close = []() {
 		uninit_hook();
@@ -3741,5 +4349,14 @@ bool init_hook()
 
 	MH_CreateHook(LoadLibraryW, load_library_w_hook, &load_library_w_orig);
 	MH_EnableHook(LoadLibraryW);
+	full_trace("init_hook: LoadLibraryW hook enabled");
+	// The full plugin may be loaded after the runtime-ready cri_ware signal has
+	// already happened. GameAssembly being mapped by itself is not sufficient:
+	// calling into IL2CPP too early can trip a fatal GC error. Only compensate
+	// for a missed LoadLibraryW event when both modules are already resident.
+	if (GetModuleHandleW(L"GameAssembly.dll") && GetModuleHandleW(L"cri_ware_unity.dll")) {
+		full_trace("init_hook: GameAssembly + cri_ware already loaded; initializing now");
+		path_game_assembly();
+	}
 	return true;
 }

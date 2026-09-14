@@ -27,6 +27,7 @@ namespace
     using il2cpp_class_get_name_t = const char* (*)(void*);
     using il2cpp_thread_attach_t = void* (*)(void*);
     using il2cpp_thread_detach_t = void (*)(void*);
+    using il2cpp_resolve_icall_t = void* (*)(const char*);
 
     il2cpp_domain_get_t il2cpp_domain_get = nullptr;
     il2cpp_domain_assembly_open_t il2cpp_domain_assembly_open = nullptr;
@@ -38,6 +39,7 @@ namespace
     il2cpp_class_get_name_t il2cpp_class_get_name = nullptr;
     il2cpp_thread_attach_t il2cpp_thread_attach = nullptr;
     il2cpp_thread_detach_t il2cpp_thread_detach = nullptr;
+    il2cpp_resolve_icall_t il2cpp_resolve_icall = nullptr;
 
     std::mutex log_mutex;
     std::atomic_uint32_t worker_counter{0};
@@ -86,6 +88,7 @@ namespace
         ok &= resolve_export(module, "il2cpp_class_get_name", il2cpp_class_get_name);
         ok &= resolve_export(module, "il2cpp_thread_attach", il2cpp_thread_attach);
         ok &= resolve_export(module, "il2cpp_thread_detach", il2cpp_thread_detach);
+        ok &= resolve_export(module, "il2cpp_resolve_icall", il2cpp_resolve_icall);
         return ok;
     }
 
@@ -259,6 +262,31 @@ namespace
         record("METHOD", "LiveMvUnitMemberChangePresenter nested MoveNext/0",
             move_next && move_next->methodPointer ? reinterpret_cast<void*>(move_next->methodPointer) : nullptr);
 
+        auto live_member_vm = find_class("PRISM.Adapters.dll", "PRISM.Adapters", "LiveUnitMemberChangeViewModel");
+        record("CLASS", "PRISM.Adapters.dll|PRISM.Adapters|LiveUnitMemberChangeViewModel", live_member_vm);
+        auto live_member_display = find_nested(live_member_vm, "<>c__DisplayClass16_2");
+        record("NESTED", "LiveUnitMemberChangeViewModel|<>c__DisplayClass16_2", live_member_display);
+        auto live_same_idol = live_member_display
+            ? il2cpp_class_get_method_from_name(live_member_display, "<.ctor>b__5", 1)
+            : nullptr;
+        record("METHOD", "LiveUnitMemberChangeViewModel duplicate predicate <.ctor>b__5/1",
+            live_same_idol && live_same_idol->methodPointer
+                ? reinterpret_cast<void*>(live_same_idol->methodPointer) : nullptr);
+
+        auto mv_member_vm = find_class("PRISM.Adapters.dll", "PRISM.Adapters", "LiveMvUnitMemberChangeViewModel");
+        record("CLASS", "PRISM.Adapters.dll|PRISM.Adapters|LiveMvUnitMemberChangeViewModel", mv_member_vm);
+        auto mv_member_display = find_nested(mv_member_vm, "<>c__DisplayClass7_0");
+        record("NESTED", "LiveMvUnitMemberChangeViewModel|<>c__DisplayClass7_0", mv_member_display);
+        auto mv_build_idol = mv_member_display
+            ? il2cpp_class_get_method_from_name(mv_member_display, "<.ctor>b__4", 1)
+            : nullptr;
+        record("METHOD", "LiveMvUnitMemberChangeViewModel build idol VM <.ctor>b__4/1",
+            mv_build_idol && mv_build_idol->methodPointer
+                ? reinterpret_cast<void*>(mv_build_idol->methodPointer) : nullptr);
+        auto mv_idol_vm = find_class("PRISM.Adapters.dll", "PRISM.Adapters", "LiveMvIdolListIdolViewModel");
+        record("CLASS", "PRISM.Adapters.dll|PRISM.Adapters|LiveMvIdolListIdolViewModel", mv_idol_vm);
+        probe_field(mv_idol_vm, "LiveMvIdolListIdolViewModel", "IsInSameUnit");
+
         if (level < 3)
         {
             log_line("probe done level=" + std::to_string(level) + " ok=" + std::to_string(ok_count) + " missing=" + std::to_string(missing_count));
@@ -280,7 +308,9 @@ namespace
             {"UnityEngine.AssetBundleModule.dll", "UnityEngine", "AssetBundle", "LoadFromFile", 3},
             {"UnityEngine.CoreModule.dll", "UnityEngine", "Object", "IsNativeObjectAlive", 1},
             {"UnityEngine.AssetBundleModule.dll", "UnityEngine", "AssetBundle", "LoadAsset_Internal", 2},
+            {"UnityEngine.TextRenderingModule.dll", "UnityEngine", "Font", "HasCharacter", 1},
             {"Unity.TextMeshPro.dll", "TMPro", "TMP_FontAsset", "CreateFontAsset", 1},
+            {"Unity.TextMeshPro.dll", "TMPro", "TMP_FontAsset", "HasCharacter", 1},
             {"Unity.TextMeshPro.dll", "TMPro", "TMP_Text", "set_font", 1},
             {"Unity.TextMeshPro.dll", "TMPro", "TMP_Text", "get_font", 0},
             {"Unity.TextMeshPro.dll", "TMPro", "TMP_Text", "set_text", 1},
@@ -331,6 +361,7 @@ namespace
             {"PRISM.Adapters.dll", "PRISM.Adapters.CostumeChange", "CostumeChangeViewModel", ".ctor", 6},
             {"PRISM.Adapters.dll", "PRISM.Adapters.CostumeChange", "CostumeChangeViewModel", "CanDecide", 0},
             {"PRISM.Adapters.dll", "PRISM.Adapters.CostumeChange", "CostumeChangeViewModel", "CanDecide", 2},
+            {"PRISM.Legacy.dll", "PRISM.Domain", "CostumeStatusExtensions", "CanWear", 3},
             {"PRISM.Adapters.dll", "PRISM.Adapters.CostumeChange", "CostumeChangeViewModel", "RefreshViewModels", 0},
             {"PRISM.Adapters.dll", "PRISM.Adapters.CostumeChange", "CostumeChangeViewModel", "ModifyPreview", 1},
         };
@@ -340,7 +371,17 @@ namespace
             probe_method(spec.assembly_name, spec.namespaze, spec.class_name, spec.method_name, spec.arg_count);
         }
 
-        log_line("HIGH_RISK NOTE Dictionary<int, ICostumeStatus>.Add and closed UniRx.Subject<CostumeChangeViewModel>.OnNext require managed generic reflection; intentionally not invoked by read-only probe phase 1");
+        static constexpr const char* icalls[] = {
+            "UnityEngine.Application::set_targetFrameRate(System.Int32)",
+            "UnityEngine.QualitySettings::set_vSyncCount(System.Int32)",
+            "UnityEngine.Application::Quit(System.Int32)",
+        };
+        for (const auto* icall : icalls)
+        {
+            record("ICALL", icall, il2cpp_resolve_icall ? il2cpp_resolve_icall(icall) : nullptr);
+        }
+
+        log_line("HIGH_RISK NOTE Dictionary<int, ICostumeStatus>.Add and closed UniRx.Subject<CostumeChangeViewModel>.OnNext require managed generic reflection; generic target is feature-gated and intentionally not invoked by the read-only probe");
         log_line("probe done level=" + std::to_string(level) + " ok=" + std::to_string(ok_count) + " missing=" + std::to_string(missing_count));
     }
 

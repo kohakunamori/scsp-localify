@@ -20,6 +20,9 @@
 #include <map>
 #include <thread>
 #include <variant>
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
 
 #include <exception>
 #include <vector>
@@ -38,10 +41,55 @@
 #include "reflection.hpp"
 
 #include <nlohmann/json.hpp>
-#include <cpprest/uri.h>
-#include <cpprest/http_listener.h>
-#include <cpprest/http_client.h>
 #include <string>
+
+namespace utility {
+	using string_t = std::wstring;
+
+	namespace conversions {
+		inline std::string to_utf8string(const std::wstring& value) {
+			if (value.empty()) return {};
+			const int size = WideCharToMultiByte(
+				CP_UTF8, 0, value.data(), static_cast<int>(value.size()),
+				nullptr, 0, nullptr, nullptr);
+			if (size <= 0) return {};
+			std::string result(static_cast<size_t>(size), '\0');
+			WideCharToMultiByte(
+				CP_UTF8, 0, value.data(), static_cast<int>(value.size()),
+				result.data(), size, nullptr, nullptr);
+			return result;
+		}
+
+		inline std::string to_utf8string(const wchar_t* value) {
+			return value ? to_utf8string(std::wstring(value)) : std::string{};
+		}
+
+		inline std::wstring to_utf16string(const std::string& value) {
+			if (value.empty()) return {};
+			const int size = MultiByteToWideChar(
+				CP_UTF8, 0, value.data(), static_cast<int>(value.size()),
+				nullptr, 0);
+			if (size <= 0) return {};
+			std::wstring result(static_cast<size_t>(size), L'\0');
+			MultiByteToWideChar(
+				CP_UTF8, 0, value.data(), static_cast<int>(value.size()),
+				result.data(), size);
+			return result;
+		}
+
+		inline string_t to_string_t(const std::string& value) {
+			return to_utf16string(value);
+		}
+
+		inline string_t to_string_t(const std::wstring& value) {
+			return value;
+		}
+
+		inline string_t to_string_t(const wchar_t* value) {
+			return value ? std::wstring(value) : std::wstring{};
+		}
+	}
+}
 
 #include "local/local.hpp"
 #include "camera/camera.hpp"
@@ -265,6 +313,11 @@ struct UnitIdol {
 
 	static void InitUnitIdol(void* unitIdolInstance);
 
+	UnitIdol() = default;
+	UnitIdol(const UnitIdol& other);
+	UnitIdol& operator=(const UnitIdol& other);
+	UnitIdol(UnitIdol&& other) noexcept;
+	UnitIdol& operator=(UnitIdol&& other) noexcept;
 
 	int CharaId = -1;
 	int ClothId = 0;
@@ -279,6 +332,7 @@ struct UnitIdol {
 	int CostumeResourceId = -1;
 
 	void ReadFrom(managed::UnitIdol* managed);
+	void CopyFrom(const UnitIdol& other);
 	void ApplyTo(managed::UnitIdol* managed, bool applyMstDataWhenPossible);
 
 	void Clear();
@@ -385,6 +439,10 @@ extern bool g_enable_console;
 extern bool g_auto_dump_all_json;
 extern bool g_dump_untrans_lyrics;
 extern bool g_dump_untrans_unlocal;
+extern bool g_diagnostic_file_trace;
+extern bool g_diagnostic_suppress_application_quit;
+extern bool g_diagnostic_lyrics_lookup_probe;
+void full_trace(const std::string& message);
 extern std::string g_custom_font_path;
 extern std::filesystem::path g_localify_base;
 extern char hotKey;

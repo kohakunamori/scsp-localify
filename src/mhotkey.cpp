@@ -7,6 +7,7 @@
 #include <thread>
 #include <format>
 #include <functional>
+#include <mutex>
 #include <WinUser.h>
 #include "camera/camera.hpp"
 
@@ -28,6 +29,8 @@ namespace MHotkey{
         std::function<void(int, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD, DWORD)> mKeyBoardCallBack = nullptr;
         std::function<void(int, int)> mKeyBoardRawCallBack = nullptr;
         bool hotKeyThreadStarted = false;
+        std::mutex hotKeyInstallMutex;
+        HWND hookedWindow = nullptr;
     }
 
     bool get_is_plugin_open() {
@@ -158,12 +161,24 @@ namespace MHotkey{
         case WM_NCACTIVATE: {
             if (!wParam) {
                 SCCamera::onKillFocus();
-                return FALSE;
+                if (g_diagnostic_file_trace) {
+                    full_trace(std::string("focus: WM_NCACTIVATE inactive block=") + (g_block_out_of_focus ? "1" : "0"));
+                }
+                if (g_block_out_of_focus) {
+                    if (g_diagnostic_file_trace) full_trace("focus: WM_NCACTIVATE suppressed");
+                    return FALSE;
+                }
             }
         }; break;
         case WM_KILLFOCUS: {
             SCCamera::onKillFocus();
-            return FALSE;
+            if (g_diagnostic_file_trace) {
+                full_trace(std::string("focus: WM_KILLFOCUS block=") + (g_block_out_of_focus ? "1" : "0"));
+            }
+            if (g_block_out_of_focus) {
+                if (g_diagnostic_file_trace) full_trace("focus: WM_KILLFOCUS suppressed");
+                return FALSE;
+            }
         }; break;
         case WM_CLOSE: {
             if (g_on_close) g_on_close();
@@ -174,15 +189,37 @@ namespace MHotkey{
         return CallWindowProc(g_pfnOldWndProc, hWnd, uMsg, wParam, lParam);
     }
 
-    void InstallWndProcHook()
+    bool InstallWndProcHook()
     {
-        g_pfnOldWndProc = (WNDPROC)GetWindowLongPtr(FindWindowW(L"UnityWndClass", L"imasscprism"), GWLP_WNDPROC);
-        SetWindowLongPtr(FindWindowW(L"UnityWndClass", L"imasscprism"), GWLP_WNDPROC, (LONG_PTR)WndProcCallback);
+        const auto hWnd = FindWindowW(L"UnityWndClass", L"imasscprism");
+        if (!hWnd) return false;
+
+        const auto currentWndProc = reinterpret_cast<WNDPROC>(GetWindowLongPtr(hWnd, GWLP_WNDPROC));
+        if (!currentWndProc) return false;
+        if (currentWndProc == WndProcCallback) {
+            hookedWindow = hWnd;
+            return true;
+        }
+
+        SetLastError(ERROR_SUCCESS);
+        const auto previous = SetWindowLongPtr(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(WndProcCallback));
+        if (previous == 0 && GetLastError() != ERROR_SUCCESS) return false;
+
+        g_pfnOldWndProc = reinterpret_cast<WNDPROC>(previous);
+        hookedWindow = hWnd;
+        if (g_diagnostic_file_trace) full_trace("wndproc: UnityWndClass hook installed");
+        return true;
     }
 
     void UninstallWndProcHook(HWND hWnd)
     {
-        SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)g_pfnOldWndProc);
+        std::lock_guard<std::mutex> lock(hotKeyInstallMutex);
+        const auto target = hWnd ? hWnd : hookedWindow;
+        if (target && g_pfnOldWndProc) {
+            SetWindowLongPtr(target, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(g_pfnOldWndProc));
+        }
+        hookedWindow = nullptr;
+        hotKeyThreadStarted = false;
     }
 
     bool get_uma_stat() {
@@ -205,15 +242,14 @@ namespace MHotkey{
     int start_hotkey(char sethotk='u')
     {
         MHotkey::hotk = sethotk;
+        std::lock_guard<std::mutex> lock(hotKeyInstallMutex);
         if (hotKeyThreadStarted) return 1;
 
-        HANDLE hThread;
-        DWORD dwThread;
-
+        // InvokeMoveNext can run before UnityWndClass exists. Do not mark the
+        // hotkey/WndProc path started until the hook is actually installed;
+        // later coroutine moves will retry naturally.
+        if (!InstallWndProcHook()) return 0;
         hotKeyThreadStarted = true;
-        InstallWndProcHook();
-
         return 1;
-
     }
 }

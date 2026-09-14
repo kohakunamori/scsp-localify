@@ -1,32 +1,28 @@
 #include <stdinclude.hpp>
 
-#include <minizip/unzip.h>
 #include <TlHelp32.h>
 
 #include <unordered_set>
 #include <charconv>
 #include <cassert>
 #include <format>
-#include <cpprest/uri.h>
-#include <cpprest/http_listener.h>
+#include <iomanip>
 #include <ranges>
 #include <mhotkey.hpp>
+#include <local/local.hpp>
 
 extern bool init_hook();
 extern void uninit_hook();
 extern void start_console();
-
-using namespace web;
-using namespace http;
-using namespace utility;
-using namespace http::experimental::listener;
-
 
 bool g_enable_plugin = true;
 bool g_enable_console = true;
 bool g_auto_dump_all_json = false;
 bool g_dump_untrans_lyrics = false;
 bool g_dump_untrans_unlocal = false;
+bool g_diagnostic_file_trace = false;
+bool g_diagnostic_suppress_application_quit = false;
+bool g_diagnostic_lyrics_lookup_probe = false;
 int g_max_fps = 60;
 int g_vsync_count = 0;
 float g_3d_resolution_scale = 1.0f;
@@ -87,6 +83,27 @@ constexpr const char ConfigJson[] = "scsp-config.json";
 
 const auto CONSOLE_TITLE = L"iM@S SCSP Tools By chinosk";
 bool showStartCommand = false;
+
+void full_trace(const std::string& message)
+{
+	if (!g_diagnostic_file_trace)
+		return;
+	static std::mutex trace_mutex;
+	std::lock_guard lock(trace_mutex);
+	SYSTEMTIME now{};
+	GetLocalTime(&now);
+	std::ofstream out("scsp-full-startup.log", std::ios::out | std::ios::app);
+	if (!out.is_open())
+		return;
+	out << std::setfill('0')
+		<< std::setw(2) << now.wHour << ":"
+		<< std::setw(2) << now.wMinute << ":"
+		<< std::setw(2) << now.wSecond << "."
+		<< std::setw(3) << now.wMilliseconds
+		<< " tid=" << GetCurrentThreadId() << " "
+		<< message << "\n";
+	out.flush();
+}
 
 namespace
 {
@@ -156,16 +173,26 @@ namespace
 
 	std::vector<std::string> read_config(std::vector<std::string>& logs)
 	{
-		std::ifstream config_stream{ ConfigJson };
+		std::ifstream config_stream{ ConfigJson, std::ios::binary };
 		std::vector<std::string> dicts{};
 
 		if (!config_stream.is_open())
 			return dicts;
 
-		rapidjson::IStreamWrapper wrapper{ config_stream };
-		rapidjson::Document document;
+		std::string config_json{
+			std::istreambuf_iterator<char>{ config_stream },
+			std::istreambuf_iterator<char>{}
+		};
+		if (config_json.size() >= 3 &&
+			static_cast<unsigned char>(config_json[0]) == 0xEF &&
+			static_cast<unsigned char>(config_json[1]) == 0xBB &&
+			static_cast<unsigned char>(config_json[2]) == 0xBF) {
+			config_json.erase(0, 3);
+			logs.push_back("[INFO] UTF-8 BOM stripped from scsp-config.json.\n");
+		}
 
-		document.ParseStream(wrapper);
+		rapidjson::Document document;
+		document.Parse(config_json.data(), config_json.size());
 
 		if (!document.HasParseError())
 		{
@@ -192,6 +219,15 @@ namespace
 
 			if (document.HasMember("enableConsole")) {
 				g_enable_console = document["enableConsole"].GetBool();
+			}
+			if (document.HasMember("diagnosticFileTrace")) {
+				g_diagnostic_file_trace = document["diagnosticFileTrace"].GetBool();
+			}
+			if (document.HasMember("diagnosticSuppressApplicationQuit")) {
+				g_diagnostic_suppress_application_quit = document["diagnosticSuppressApplicationQuit"].GetBool();
+			}
+			if (document.HasMember("diagnosticLyricsLookupProbe")) {
+				g_diagnostic_lyrics_lookup_probe = document["diagnosticLyricsLookupProbe"].GetBool();
 			}
 			if (document.HasMember("localifyBasePath")) {
 				g_localify_base = document["localifyBasePath"].GetString();
@@ -245,10 +281,14 @@ namespace
 			}
 
 			if (document.HasMember("allowUseTryOnCostume")) {
-				g_allow_use_tryon_costume = document["allowUseTryOnCostume"].GetBool();
+				g_allow_use_tryon_costume = false;
+				logs.push_back("[WARNING] Option `allowUseTryOnCostume` is obsolete on SCSP 2.17 and is ignored; use the maintained CostumeChangeViewModel features instead.\n");
 			}
 			if (document.HasMember("allowSameIdol")) {
 				g_allow_same_idol = document["allowSameIdol"].GetBool();
+			}
+			if (document.HasMember("unlockAllDress")) {
+				g_unlock_all_dress = document["unlockAllDress"].GetBool();
 			}
 			if (document.HasMember("saveAndReplaceCostumeChanges")) {
 				g_save_and_replace_costume_changes = document["saveAndReplaceCostumeChanges"].GetBool();
@@ -296,6 +336,13 @@ namespace
 			READ_JSON_FLOAT(magicacloth_springLimitDistance);
 			READ_JSON_FLOAT(magicacloth_springNoise);
 		}
+		else {
+			logs.push_back(
+				"[ERROR] Failed to parse scsp-config.json: rapidjson code=" +
+				std::to_string(static_cast<int>(document.GetParseError())) +
+				" offset=" + std::to_string(document.GetErrorOffset()) + "\n"
+			);
+		}
 
 		config_stream.close();
 		return dicts;
@@ -339,7 +386,17 @@ int __stdcall DllMain(HINSTANCE dllModule, DWORD reason, LPVOID)
 
 
 		std::vector<std::string> logs{};
-		auto dicts = read_config(logs);
+		read_config(logs);
+		if (g_diagnostic_file_trace) {
+			std::error_code ec;
+			std::filesystem::remove("scsp-full-startup.log", ec);
+			full_trace("DllMain attach: config loaded");
+			full_trace("config: 3dScale=" + std::to_string(g_3d_resolution_scale) +
+				" blockOutOfFocus=" + std::to_string(g_block_out_of_focus ? 1 : 0) +
+				" freeCamera=" + std::to_string(g_enable_free_camera ? 1 : 0) +
+				" freeCameraMoveStep=" + std::to_string(BaseCamera::moveStep) +
+				" freeCameraMouseSpeed=" + std::to_string(g_free_camera_mouse_speed));
+		}
 
 		if (g_enable_console) {
 			create_debug_console();
@@ -352,20 +409,24 @@ int __stdcall DllMain(HINSTANCE dllModule, DWORD reason, LPVOID)
 			printf("%s", log.c_str());
 		}
 
-		std::thread init_thread([dicts = std::move(dicts)] {
+		std::thread init_thread([] {
+			full_trace("init thread: begin");
 
 			if (g_enable_console)
 			{
 				start_console();
 			}
 
-			init_hook();
+			full_trace("init thread: calling init_hook");
+			const bool initHookResult = init_hook();
+			full_trace(std::string("init thread: init_hook returned ") + (initHookResult ? "true" : "false"));
 
 			std::mutex mutex;
 			std::condition_variable cond;
 			std::atomic<bool> hookIsReady(false);
 			g_on_hook_ready = [&]
 				{
+					full_trace("hook ready callback: signaled");
 					hookIsReady.store(true, std::memory_order_release);
 					cond.notify_one();
 				};
@@ -375,6 +436,7 @@ int __stdcall DllMain(HINSTANCE dllModule, DWORD reason, LPVOID)
 			cond.wait(lock, [&] {
 				return hookIsReady.load(std::memory_order_acquire);
 				});
+			full_trace("init thread: hook-ready wait completed");
 			if (g_enable_console)
 			{
 				auto _ = freopen("CONOUT$", "w+t", stdout);
@@ -382,7 +444,22 @@ int __stdcall DllMain(HINSTANCE dllModule, DWORD reason, LPVOID)
 				_ = freopen("CONIN$", "r", stdin);
 			}
 
+			full_trace("init thread: reloadTransData begin");
 			reloadTransData();
+			full_trace("init thread: reloadTransData done");
+			if (g_diagnostic_lyrics_lookup_probe) {
+				static const std::wstring probeSource =
+					L"散りばめられた星の光が 静かな夜に煌き出した";
+				const auto translated = SCLocal::getLyricsTrans(probeSource);
+				const auto sourceUtf8 = utility::conversions::to_utf8string(probeSource);
+				const bool hit = !translated.empty() && translated != sourceUtf8;
+				full_trace(
+					std::string("lyrics: lookup probe song=42 hit=") +
+					(hit ? "1" : "0") +
+					" sourceBytes=" + std::to_string(sourceUtf8.size()) +
+					" translatedBytes=" + std::to_string(translated.size())
+				);
+			}
 			SetConsoleTitleW(CONSOLE_TITLE);  // 保持控制台标题
 			});
 		init_thread.detach();

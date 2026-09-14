@@ -313,6 +313,7 @@ namespace SCGUILoop {
 				auto strUnitIdol = it->second.ToString();
 
 				if (ImGui::Button(label)) {
+					it->second.Clear();
 					it = savedCostumes.erase(it);
 				}
 				else {
@@ -362,7 +363,8 @@ namespace SCGUILoop {
 						const auto length = std::min((int)arr.Size(), overridenMvUnitIdols_length);
 						for (int i = 0; i < length; ++i) {
 							auto parsed = DeserializeUnitIdol(arr[i]);
-							overridenMvUnitIdols[i] = parsed;
+							overridenMvUnitIdols[i].CopyFrom(parsed);
+							parsed.Clear();
 						}
 					}
 				}
@@ -388,7 +390,7 @@ namespace SCGUILoop {
 						printf("No costume data saved yet.\n");
 					}
 					else {
-						overridenMvUnitIdols[i] = lastSavedCostume;
+						overridenMvUnitIdols[i].CopyFrom(lastSavedCostume);
 					}
 				}
 				ImGui::SameLine();
@@ -463,6 +465,10 @@ namespace SCGUILoop {
 			ImGui::Checkbox("Show hidden costumes (overwrite isAllDressOrdered)", &g_show_hidden_costumes);
 			ImGui::SameLine();
 			HELP_TOOLTIP("(?)", "在进入换装窗口前勾选有效。\nActive only when checked before entering costume changing view.");
+
+			ImGui::Checkbox("Unlock all costumes (SCSP 2.17)", &g_unlock_all_dress);
+			ImGui::SameLine();
+			HELP_TOOLTIP("(?)", "使用当前 CostumeChangeViewModel/CostumeStatusExtensions 路径显示并允许穿戴全部舞台服装。\nUse the current SCSP 2.17 costume path to show and allow wearing all stage costumes.");
 
 			ImGui::Checkbox("Apply costume changes automatically", &g_apply_costumes_automatically);
 			ImGui::SameLine();

@@ -1,0 +1,2183 @@
+{
+  "summary": {
+    "readme_function_count": 12,
+    "global_flag_count": 59,
+    "config_key_count": 41,
+    "gui_control_count": 97,
+    "active_main_hook_count": 57,
+    "disabled_main_hook_count": 19,
+    "probe_method_spec_count": 61,
+    "probe_icall_count": 3,
+    "active_hook_probe_covered": 56,
+    "active_hook_probe_open": 1,
+    "open_hook_names": [
+      "Subject_OnNext"
+    ],
+    "networking_type_count": 1064,
+    "networking_generated_hook_count": 2128,
+    "networking_compiled_by_default": false
+  },
+  "readme_functions": [
+    "Dump Text",
+    "Localization, Font Replacement",
+    "Unlock Frame Rate",
+    "Switching Windows Without Pausing",
+    "Free Camera",
+    "Live MV Related **(Modify in GUI)**",
+    "Freedom to Choose Costumes, Wear Other Characters' Clothes",
+    "Allow Same Idol Appearance",
+    "Edit on-stage idols manually, allowing to select unlocked idols",
+    "Real-time Modification of Character Body Parameters, Adjust Height, Head, Chest, Arm, and Palm Size **(Modify in GUI)**",
+    "Runtime texture extracting and replacing",
+    "Copying body pose data"
+  ],
+  "globals": [
+    {
+      "name": "g_enable_plugin",
+      "default": "true"
+    },
+    {
+      "name": "g_enable_console",
+      "default": "true"
+    },
+    {
+      "name": "g_auto_dump_all_json",
+      "default": "false"
+    },
+    {
+      "name": "g_dump_untrans_lyrics",
+      "default": "false"
+    },
+    {
+      "name": "g_dump_untrans_unlocal",
+      "default": "false"
+    },
+    {
+      "name": "g_diagnostic_file_trace",
+      "default": "false"
+    },
+    {
+      "name": "g_diagnostic_suppress_application_quit",
+      "default": "false"
+    },
+    {
+      "name": "g_diagnostic_lyrics_lookup_probe",
+      "default": "false"
+    },
+    {
+      "name": "g_max_fps",
+      "default": "60"
+    },
+    {
+      "name": "g_vsync_count",
+      "default": "0"
+    },
+    {
+      "name": "g_3d_resolution_scale",
+      "default": "1.0f"
+    },
+    {
+      "name": "g_custom_font_path",
+      "default": "\"\""
+    },
+    {
+      "name": "g_font_size_offset",
+      "default": "-3.0f"
+    },
+    {
+      "name": "g_enable_free_camera",
+      "default": "false"
+    },
+    {
+      "name": "g_block_out_of_focus",
+      "default": "false"
+    },
+    {
+      "name": "g_free_camera_mouse_speed",
+      "default": "35"
+    },
+    {
+      "name": "g_allow_use_tryon_costume",
+      "default": "false"
+    },
+    {
+      "name": "g_allow_same_idol",
+      "default": "false"
+    },
+    {
+      "name": "g_unlock_all_dress",
+      "default": "false"
+    },
+    {
+      "name": "g_unlock_all_headwear",
+      "default": "false"
+    },
+    {
+      "name": "g_show_hidden_costumes",
+      "default": "false"
+    },
+    {
+      "name": "g_save_and_replace_costume_changes",
+      "default": "false"
+    },
+    {
+      "name": "g_overrie_mv_unit_idols",
+      "default": "false"
+    },
+    {
+      "name": "g_apply_costumes_automatically",
+      "default": "false"
+    },
+    {
+      "name": "g_override_isVocalSeparatedOn",
+      "default": "false"
+    },
+    {
+      "name": "g_enable_chara_param_edit",
+      "default": "false"
+    },
+    {
+      "name": "g_unlock_PIdol_and_SChara_events",
+      "default": "false"
+    },
+    {
+      "name": "g_start_resolution_w",
+      "default": "-1"
+    },
+    {
+      "name": "g_start_resolution_h",
+      "default": "-1"
+    },
+    {
+      "name": "g_start_resolution_fullScreen",
+      "default": "false"
+    },
+    {
+      "name": "g_reenable_clipPlane",
+      "default": "true"
+    },
+    {
+      "name": "g_nearClipPlane",
+      "default": "0"
+    },
+    {
+      "name": "g_farClipPlane",
+      "default": "2"
+    },
+    {
+      "name": "g_shader_quickprobing",
+      "default": "true"
+    },
+    {
+      "name": "g_shader_unsafe_probing",
+      "default": "true"
+    },
+    {
+      "name": "g_loadasset_output",
+      "default": "false"
+    },
+    {
+      "name": "g_extract_asset",
+      "default": "false"
+    },
+    {
+      "name": "g_extract_asset_image",
+      "default": "false"
+    },
+    {
+      "name": "g_extract_asset_rawimage",
+      "default": "false"
+    },
+    {
+      "name": "g_extract_asset_renderer",
+      "default": "false"
+    },
+    {
+      "name": "g_extract_asset_sprite",
+      "default": "false"
+    },
+    {
+      "name": "g_extract_asset_texture2d",
+      "default": "false"
+    },
+    {
+      "name": "g_extract_asset_log_unknown_asset",
+      "default": "false"
+    },
+    {
+      "name": "g_magicacloth_override",
+      "default": "false"
+    },
+    {
+      "name": "g_magicacloth_output_cloth",
+      "default": "false"
+    },
+    {
+      "name": "g_magicacloth_output_controller",
+      "default": "false"
+    },
+    {
+      "name": "g_magicacloth_inertia_min",
+      "default": "1.0f"
+    },
+    {
+      "name": "g_magicacloth_inertia_max",
+      "default": "1.0f"
+    },
+    {
+      "name": "g_magicacloth_radius_min",
+      "default": "0.002f"
+    },
+    {
+      "name": "g_magicacloth_radius_max",
+      "default": "0.028f"
+    },
+    {
+      "name": "g_magicacloth_damping",
+      "default": "0.01f"
+    },
+    {
+      "name": "g_magicacloth_movementSpeedLimit",
+      "default": "10.0f"
+    },
+    {
+      "name": "g_magicacloth_rotationSpeedLimit",
+      "default": "1440.0f"
+    },
+    {
+      "name": "g_magicacloth_localMovementSpeedLimit",
+      "default": "10.0f"
+    },
+    {
+      "name": "g_magicacloth_localRotationSpeedLimit",
+      "default": "1440.0f"
+    },
+    {
+      "name": "g_magicacloth_particleSpeedLimit",
+      "default": "40.0f"
+    },
+    {
+      "name": "g_magicacloth_limitAngle",
+      "default": "90.0f"
+    },
+    {
+      "name": "g_magicacloth_springLimitDistance",
+      "default": "0.5f"
+    },
+    {
+      "name": "g_magicacloth_springNoise",
+      "default": "0.1f"
+    }
+  ],
+  "config_keys": [
+    "showStartCommand",
+    "enableVSync",
+    "vSyncCount",
+    "maxFps",
+    "3DResolutionScale",
+    "enableConsole",
+    "diagnosticFileTrace",
+    "diagnosticSuppressApplicationQuit",
+    "diagnosticLyricsLookupProbe",
+    "localifyBasePath",
+    "hotKey",
+    "autoDumpAllJson",
+    "dumpUntransLyrics",
+    "dumpUntransLocal2",
+    "extraAssetBundlePath",
+    "extraAssetBundlePaths",
+    "customFontPath",
+    "fontSizeOffset",
+    "blockOutOfFocus",
+    "baseFreeCamera",
+    "allowUseTryOnCostume",
+    "allowSameIdol",
+    "unlockAllDress",
+    "saveAndReplaceCostumeChanges",
+    "unlockPIdolAndSCharaEvents",
+    "startResolution",
+    "magicacloth_override",
+    "key_w_camera_forward",
+    "key_s_camera_back",
+    "key_a_camera_left",
+    "key_d_camera_right",
+    "key_ctrl_camera_down",
+    "key_space_camera_up",
+    "key_up_cameralookat_up",
+    "key_down_cameralookat_down",
+    "key_left_cameralookat_left",
+    "key_right_cameralookat_right",
+    "key_q_camera_fov_increase",
+    "key_e_camera_fov_decrease",
+    "key_r_camera_reset",
+    "key_192_camera_mouseMove"
+  ],
+  "gui_controls": [
+    {
+      "line": 18,
+      "kind": "InputFloat",
+      "label": "##",
+      "code": "ImGui::InputFloat(\"##\"##label, data);\\"
+    },
+    {
+      "line": 191,
+      "kind": "CollapsingHeader",
+      "label": "Sway offset (Non real-time, requires reloading)",
+      "code": "if (ImGui::CollapsingHeader(\"Sway offset (Non real-time, requires reloading)\")) {"
+    },
+    {
+      "line": 216,
+      "kind": "Button",
+      "label": "Reset##sway",
+      "code": "if (ImGui::Button(\"Reset##sway\")) {"
+    },
+    {
+      "line": 225,
+      "kind": "Button",
+      "label": "Save##sway",
+      "code": "if (ImGui::Button(\"Save##sway\")) {"
+    },
+    {
+      "line": 238,
+      "kind": "CollapsingHeader",
+      "label": "Base Offset",
+      "code": "if (ImGui::CollapsingHeader(\"Base Offset\", ImGuiTreeNodeFlags_DefaultOpen)) {"
+    },
+    {
+      "line": 244,
+      "kind": "Button",
+      "label": "Apply##base",
+      "code": "if (ImGui::Button(\"Apply##base\")) {"
+    },
+    {
+      "line": 248,
+      "kind": "Button",
+      "label": "Reset Base##base",
+      "code": "if (ImGui::Button(\"Reset Base##base\")) {"
+    },
+    {
+      "line": 253,
+      "kind": "Button",
+      "label": "Reset All##base",
+      "code": "if (ImGui::Button(\"Reset All##base\")) {"
+    },
+    {
+      "line": 259,
+      "kind": "Checkbox",
+      "label": "Real-time Update##base",
+      "code": "if (ImGui::Checkbox(\"Real-time Update##base\", &baseParam.gui_real_time_apply)) {"
+    },
+    {
+      "line": 338,
+      "kind": "Button",
+      "label": "Export to clipboard##overwriteIdols",
+      "code": "if (ImGui::Button(\"Export to clipboard##overwriteIdols\")) {"
+    },
+    {
+      "line": 353,
+      "kind": "Button",
+      "label": "Overwrite from clipboard##overwriteIdols",
+      "code": "if (ImGui::Button(\"Overwrite from clipboard##overwriteIdols\")) {"
+    },
+    {
+      "line": 373,
+      "kind": "Button",
+      "label": "Remove all##overwriteIdols",
+      "code": "if (ImGui::Button(\"Remove all##overwriteIdols\")) {"
+    },
+    {
+      "line": 415,
+      "kind": "Button",
+      "label": "OK",
+      "code": "if (ImGui::Button(\"OK\", ImVec2(120, 0))) {"
+    },
+    {
+      "line": 426,
+      "kind": "Button",
+      "label": "Cancel",
+      "code": "if (ImGui::Button(\"Cancel\", ImVec2(120, 0))) {"
+    },
+    {
+      "line": 452,
+      "kind": "Button",
+      "label": "Reload Config And Translate Data",
+      "code": "if (ImGui::Button(\"Reload Config And Translate Data\")) {"
+    },
+    {
+      "line": 455,
+      "kind": "Checkbox",
+      "label": "Waiting Extract Text",
+      "code": "ImGui::Checkbox(\"Waiting Extract Text\", &SCGUIData::needExtractText);"
+    },
+    {
+      "line": 457,
+      "kind": "Checkbox",
+      "label": "Save & Replace costume changes",
+      "code": "ImGui::Checkbox(\"Save & Replace costume changes\", &g_save_and_replace_costume_changes);"
+    },
+    {
+      "line": 461,
+      "kind": "Checkbox",
+      "label": "Override MV unit idols",
+      "code": "ImGui::Checkbox(\"Override MV unit idols\", &g_overrie_mv_unit_idols);"
+    },
+    {
+      "line": 465,
+      "kind": "Checkbox",
+      "label": "Show hidden costumes (overwrite isAllDressOrdered)",
+      "code": "ImGui::Checkbox(\"Show hidden costumes (overwrite isAllDressOrdered)\", &g_show_hidden_costumes);"
+    },
+    {
+      "line": 469,
+      "kind": "Checkbox",
+      "label": "Unlock all costumes (SCSP 2.17)",
+      "code": "ImGui::Checkbox(\"Unlock all costumes (SCSP 2.17)\", &g_unlock_all_dress);"
+    },
+    {
+      "line": 473,
+      "kind": "Checkbox",
+      "label": "Apply costume changes automatically",
+      "code": "ImGui::Checkbox(\"Apply costume changes automatically\", &g_apply_costumes_automatically);"
+    },
+    {
+      "line": 477,
+      "kind": "Checkbox",
+      "label": "Enable VocalSeparatedOn forcibly",
+      "code": "ImGui::Checkbox(\"Enable VocalSeparatedOn forcibly\", &g_override_isVocalSeparatedOn);"
+    },
+    {
+      "line": 481,
+      "kind": "Checkbox",
+      "label": "Enable Character Parameter Editor",
+      "code": "ImGui::Checkbox(\"Enable Character Parameter Editor\", &g_enable_chara_param_edit);"
+    },
+    {
+      "line": 485,
+      "kind": "Checkbox",
+      "label": "Unlock Stories (Dangerous)",
+      "code": "ImGui::Checkbox(\"Unlock Stories (Dangerous)\", &g_unlock_PIdol_and_SChara_events);"
+    },
+    {
+      "line": 489,
+      "kind": "CollapsingHeader",
+      "label": "Resolution Settings",
+      "code": "if (ImGui::CollapsingHeader(\"Resolution Settings\", ImGuiTreeNodeFlags_DefaultOpen)) {"
+    },
+    {
+      "line": 492,
+      "kind": "Button",
+      "label": "720P",
+      "code": "if (ImGui::Button(\"720P\")) {"
+    },
+    {
+      "line": 497,
+      "kind": "Button",
+      "label": "1080P",
+      "code": "if (ImGui::Button(\"1080P\")) {"
+    },
+    {
+      "line": 502,
+      "kind": "Button",
+      "label": "1440P",
+      "code": "if (ImGui::Button(\"1440P\")) {"
+    },
+    {
+      "line": 507,
+      "kind": "Button",
+      "label": "1620P",
+      "code": "if (ImGui::Button(\"1620P\")) {"
+    },
+    {
+      "line": 512,
+      "kind": "Button",
+      "label": "2160P",
+      "code": "if (ImGui::Button(\"2160P\")) {"
+    },
+    {
+      "line": 519,
+      "kind": "Checkbox",
+      "label": "Full Screen",
+      "code": "ImGui::Checkbox(\"Full Screen\", &SCGUIData::screenFull);"
+    },
+    {
+      "line": 520,
+      "kind": "Button",
+      "label": "Update Resolution",
+      "code": "if (ImGui::Button(\"Update Resolution\")) {"
+    },
+    {
+      "line": 526,
+      "kind": "Button",
+      "label": "Swap",
+      "code": "if (ImGui::Button(\"Swap\")) {"
+    },
+    {
+      "line": 545,
+      "kind": "CollapsingHeader",
+      "label": "Camera Info",
+      "code": "if (ImGui::CollapsingHeader(\"Camera Info\", ImGuiTreeNodeFlags_DefaultOpen)) {"
+    },
+    {
+      "line": 546,
+      "kind": "InputFloat",
+      "label": "Game Camera FOV",
+      "code": "ImGui::InputFloat(\"Game Camera FOV\", &SCGUIData::sysCamFov);"
+    },
+    {
+      "line": 547,
+      "kind": "InputFloat3",
+      "label": "Game Camera Pos (x, y, z)",
+      "code": "ImGui::InputFloat3(\"Game Camera Pos (x, y, z)\", &SCGUIData::sysCamPos.x);"
+    },
+    {
+      "line": 548,
+      "kind": "InputFloat3",
+      "label": "Game Camera LookAt (x, y, z)",
+      "code": "ImGui::InputFloat3(\"Game Camera LookAt (x, y, z)\", &SCGUIData::sysCamLookAt.x);"
+    },
+    {
+      "line": 549,
+      "kind": "InputFloat4",
+      "label": "Game Camera Rotation (w, x, y, z)",
+      "code": "ImGui::InputFloat4(\"Game Camera Rotation (w, x, y, z)\", &SCGUIData::sysCamRot.w);"
+    },
+    {
+      "line": 551,
+      "kind": "CollapsingHeader",
+      "label": "Free Camera",
+      "code": "if (ImGui::CollapsingHeader(\"Free Camera\", ImGuiTreeNodeFlags_DefaultOpen)) {"
+    },
+    {
+      "line": 552,
+      "kind": "Checkbox",
+      "label": "Enable Free Camera",
+      "code": "ImGui::Checkbox(\"Enable Free Camera\", &g_enable_free_camera);"
+    },
+    {
+      "line": 553,
+      "kind": "Checkbox",
+      "label": "Enable ClipPlane overriding",
+      "code": "ImGui::Checkbox(\"Enable ClipPlane overriding\", &g_reenable_clipPlane);"
+    },
+    {
+      "line": 557,
+      "kind": "InputFloat",
+      "label": "near clip plane",
+      "code": "ImGui::InputFloat(\"near clip plane\", &g_nearClipPlane);"
+    },
+    {
+      "line": 561,
+      "kind": "InputFloat",
+      "label": "far clip plane",
+      "code": "ImGui::InputFloat(\"far clip plane\", &g_farClipPlane);"
+    },
+    {
+      "line": 566,
+      "kind": "InputFloat3",
+      "label": "Camera Pos (x, y, z)",
+      "code": "ImGui::InputFloat3(\"Camera Pos (x, y, z)\", &SCCamera::baseCamera.pos.x);"
+    },
+    {
+      "line": 567,
+      "kind": "InputFloat3",
+      "label": "Camera LookAt (x, y, z)",
+      "code": "ImGui::InputFloat3(\"Camera LookAt (x, y, z)\", &SCCamera::baseCamera.lookAt.x);"
+    },
+    {
+      "line": 575,
+      "kind": "Button",
+      "label": "Export to clipboard",
+      "code": "if (ImGui::Button(\"Export to clipboard\")) {"
+    },
+    {
+      "line": 590,
+      "kind": "Button",
+      "label": "Append from clipboard",
+      "code": "if (ImGui::Button(\"Append from clipboard\")) {"
+    },
+    {
+      "line": 608,
+      "kind": "Button",
+      "label": "Remove all saved states",
+      "code": "if (ImGui::Button(\"Remove all saved states\")) {"
+    },
+    {
+      "line": 617,
+      "kind": "Button",
+      "label": "Save",
+      "code": "if (ImGui::Button(\"Save\")) {"
+    },
+    {
+      "line": 675,
+      "kind": "Button",
+      "label": "Clear",
+      "code": "if (ImGui::Button(\"Clear\")) {"
+    },
+    {
+      "line": 682,
+      "kind": "Button",
+      "label": "Remove",
+      "code": "if (ImGui::Button(\"Remove\")) {"
+    },
+    {
+      "line": 688,
+      "kind": "Button",
+      "label": "Rename",
+      "code": "if (ImGui::Button(\"Rename\")) {"
+    },
+    {
+      "line": 697,
+      "kind": "Button",
+      "label": "OK",
+      "code": "if (ImGui::Button(\"OK\", ImVec2(120, 0))) {"
+    },
+    {
+      "line": 702,
+      "kind": "Button",
+      "label": "Cancel",
+      "code": "if (ImGui::Button(\"Cancel\", ImVec2(120, 0))) {"
+    },
+    {
+      "line": 716,
+      "kind": "Button",
+      "label": "Add New Slot",
+      "code": "if (ImGui::Button(\"Add New Slot\")) {"
+    },
+    {
+      "line": 722,
+      "kind": "CollapsingHeader",
+      "label": "MagicaCloth",
+      "code": "if (ImGui::CollapsingHeader(\"MagicaCloth\", ImGuiTreeNodeFlags_DefaultOpen)) {"
+    },
+    {
+      "line": 723,
+      "kind": "Checkbox",
+      "label": "Override MagicaCloth",
+      "code": "ImGui::Checkbox(\"Override MagicaCloth\", &g_magicacloth_override);"
+    },
+    {
+      "line": 729,
+      "kind": "Checkbox",
+      "label": "(cloth)",
+      "code": "ImGui::Checkbox(\"(cloth)\", &g_magicacloth_output_cloth);"
+    },
+    {
+      "line": 733,
+      "kind": "Checkbox",
+      "label": "(controller)",
+      "code": "ImGui::Checkbox(\"(controller)\", &g_magicacloth_output_controller);"
+    },
+    {
+      "line": 742,
+      "kind": "InputFloat",
+      "label": "Angle.LimitAngle",
+      "code": "ImGui::InputFloat(\"Angle.LimitAngle\", &g_magicacloth_limitAngle);"
+    },
+    {
+      "line": 743,
+      "kind": "InputFloat",
+      "label": "Damping",
+      "code": "ImGui::InputFloat(\"Damping\", &g_magicacloth_damping);"
+    },
+    {
+      "line": 744,
+      "kind": "InputFloat",
+      "label": "MovementSpeedLimit",
+      "code": "ImGui::InputFloat(\"MovementSpeedLimit\", &g_magicacloth_movementSpeedLimit);"
+    },
+    {
+      "line": 745,
+      "kind": "InputFloat",
+      "label": "RotationSpeedLimit",
+      "code": "ImGui::InputFloat(\"RotationSpeedLimit\", &g_magicacloth_rotationSpeedLimit);"
+    },
+    {
+      "line": 746,
+      "kind": "InputFloat",
+      "label": "LocalMovementSpeedLimit",
+      "code": "ImGui::InputFloat(\"LocalMovementSpeedLimit\", &g_magicacloth_localMovementSpeedLimit);"
+    },
+    {
+      "line": 747,
+      "kind": "InputFloat",
+      "label": "LocalRotationSpeedLimit",
+      "code": "ImGui::InputFloat(\"LocalRotationSpeedLimit\", &g_magicacloth_localRotationSpeedLimit);"
+    },
+    {
+      "line": 748,
+      "kind": "InputFloat",
+      "label": "ParticleSpeedLimit",
+      "code": "ImGui::InputFloat(\"ParticleSpeedLimit\", &g_magicacloth_particleSpeedLimit);"
+    },
+    {
+      "line": 749,
+      "kind": "InputFloat",
+      "label": "Spring.LimitDistance",
+      "code": "ImGui::InputFloat(\"Spring.LimitDistance\", &g_magicacloth_springLimitDistance);"
+    },
+    {
+      "line": 750,
+      "kind": "InputFloat",
+      "label": "Spring.SpringNoise",
+      "code": "ImGui::InputFloat(\"Spring.SpringNoise\", &g_magicacloth_springNoise);"
+    },
+    {
+      "line": 755,
+      "kind": "CollapsingHeader",
+      "label": "Assets",
+      "code": "if (ImGui::CollapsingHeader(\"Assets\", ImGuiTreeNodeFlags_DefaultOpen)) {"
+    },
+    {
+      "line": 756,
+      "kind": "Checkbox",
+      "label": "Use unsafe probing for unknown shaders",
+      "code": "ImGui::Checkbox(\"Use unsafe probing for unknown shaders\", &g_shader_unsafe_probing);"
+    },
+    {
+      "line": 758,
+      "kind": "Checkbox",
+      "label": "Use quick probing for unknown shaders (when not unsafe)",
+      "code": "ImGui::Checkbox(\"Use quick probing for unknown shaders (when not unsafe)\", &g_shader_quickprobing);"
+    },
+    {
+      "line": 761,
+      "kind": "Checkbox",
+      "label": "Output asset names",
+      "code": "ImGui::Checkbox(\"Output asset names\", &g_loadasset_output);"
+    },
+    {
+      "line": 764,
+      "kind": "Checkbox",
+      "label": "Extract assets of:",
+      "code": "ImGui::Checkbox(\"Extract assets of:\", &g_extract_asset);"
+    },
+    {
+      "line": 769,
+      "kind": "Checkbox",
+      "label": "Renderer",
+      "code": "ImGui::Checkbox(\"Renderer\", &g_extract_asset_renderer);"
+    },
+    {
+      "line": 773,
+      "kind": "Checkbox",
+      "label": "Texture2D",
+      "code": "ImGui::Checkbox(\"Texture2D\", &g_extract_asset_texture2d);"
+    },
+    {
+      "line": 777,
+      "kind": "Checkbox",
+      "label": "Image",
+      "code": "ImGui::Checkbox(\"Image\", &g_extract_asset_image);"
+    },
+    {
+      "line": 779,
+      "kind": "Checkbox",
+      "label": "RawImage",
+      "code": "ImGui::Checkbox(\"RawImage\", &g_extract_asset_rawimage);"
+    },
+    {
+      "line": 781,
+      "kind": "Checkbox",
+      "label": "Sprite",
+      "code": "ImGui::Checkbox(\"Sprite\", &g_extract_asset_sprite);"
+    },
+    {
+      "line": 785,
+      "kind": "CollapsingHeader",
+      "label": "Poses",
+      "code": "if (ImGui::CollapsingHeader(\"Poses\", ImGuiTreeNodeFlags_DefaultOpen)) {"
+    },
+    {
+      "line": 789,
+      "kind": "CollapsingHeader",
+      "label": "Legacy",
+      "code": "if (ImGui::CollapsingHeader(\"Legacy\", ImGuiTreeNodeFlags_None)) {"
+    },
+    {
+      "line": 790,
+      "kind": "Checkbox",
+      "label": "Live Allow Same Idol (Dangerous)",
+      "code": "ImGui::Checkbox(\"Live Allow Same Idol (Dangerous)\", &g_allow_same_idol);"
+    },
+    {
+      "line": 797,
+      "kind": "CollapsingHeader",
+      "label": "Devs",
+      "code": "if (ImGui::CollapsingHeader(\"Devs\", ImGuiTreeNodeFlags_None)) {"
+    },
+    {
+      "line": 808,
+      "kind": "Button",
+      "label": "OK",
+      "code": "if (ImGui::Button(\"OK\")) {"
+    },
+    {
+      "line": 821,
+      "kind": "Button",
+      "label": "OK",
+      "code": "if (ImGui::Button(\"OK\", ImVec2(120, 0))) {"
+    },
+    {
+      "line": 827,
+      "kind": "Button",
+      "label": "Cancel",
+      "code": "if (ImGui::Button(\"Cancel\", ImVec2(120, 0))) {"
+    },
+    {
+      "line": 847,
+      "kind": "Button",
+      "label": "Scan idol objects",
+      "code": "if (ImGui::Button(\"Scan idol objects\")) {"
+    },
+    {
+      "line": 876,
+      "kind": "Button",
+      "label": "Serialize",
+      "code": "if (ImGui::Button(\"Serialize\")) {"
+    },
+    {
+      "line": 901,
+      "kind": "Button",
+      "label": "ApplyTo",
+      "code": "if (ImGui::Button(\"ApplyTo\")) {"
+    },
+    {
+      "line": 919,
+      "kind": "Button",
+      "label": "Clear",
+      "code": "if (ImGui::Button(\"Clear\")) {"
+    },
+    {
+      "line": 961,
+      "kind": "Button",
+      "label": "Rename",
+      "code": "if (ImGui::Button(\"Rename\")) {"
+    },
+    {
+      "line": 971,
+      "kind": "Button",
+      "label": "Copy",
+      "code": "if (ImGui::Button(\"Copy\")) {"
+    },
+    {
+      "line": 977,
+      "kind": "Button",
+      "label": "Remove",
+      "code": "if (ImGui::Button(\"Remove\")) {"
+    },
+    {
+      "line": 987,
+      "kind": "Button",
+      "label": "Clear cached poses",
+      "code": "if (ImGui::Button(\"Clear cached poses\")) {"
+    },
+    {
+      "line": 993,
+      "kind": "Button",
+      "label": "Import from clipboard",
+      "code": "if (ImGui::Button(\"Import from clipboard\")) {"
+    },
+    {
+      "line": 1007,
+      "kind": "Button",
+      "label": "Clear all overridings",
+      "code": "if (ImGui::Button(\"Clear all overridings\")) {"
+    },
+    {
+      "line": 1017,
+      "kind": "Checkbox",
+      "label": "Output networking calls",
+      "code": "ImGui::Checkbox(\"Output networking calls\", &tools::output_networking_calls);"
+    },
+    {
+      "line": 1020,
+      "kind": "Button",
+      "label": "BuildCallingRelations",
+      "code": "if (ImGui::Button(\"BuildCallingRelations\")) {"
+    }
+  ],
+  "active_hooks": [
+    {
+      "hook": "SetResolution",
+      "line": 4197,
+      "code": "ADD_HOOK(SetResolution, \"SetResolution at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Screen",
+        "SetResolution",
+        3
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "StoryExtensions_IsLocked",
+      "line": 4203,
+      "code": "ADD_HOOK_1(StoryExtensions_IsLocked);",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM.Domain",
+        "StoryExtensions",
+        "IsLocked",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "LocalizationManager_GetTextOrNull",
+      "line": 4204,
+      "code": "ADD_HOOK(LocalizationManager_GetTextOrNull, \"LocalizationManager_GetTextOrNull at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "ENTERPRISE.Localization",
+        "LocalizationManager",
+        "GetTextOrNull",
+        2
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "GetResolutionSize",
+      "line": 4205,
+      "code": "ADD_HOOK(GetResolutionSize, \"GetResolutionSize at %p\");",
+      "kind": "method",
+      "target": [
+        "Prism.Rendering.Runtime.dll",
+        "PRISM.Rendering",
+        "RenderManager",
+        "GetResolutionSize",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "AssetBundle_LoadAsset",
+      "line": 4206,
+      "code": "ADD_HOOK(AssetBundle_LoadAsset, \"AssetBundle_LoadAsset at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.AssetBundleModule.dll",
+        "UnityEngine",
+        "AssetBundle",
+        "LoadAsset_Internal",
+        2
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "LiveMVOverlayView_UpdateLyrics",
+      "line": 4207,
+      "code": "ADD_HOOK(LiveMVOverlayView_UpdateLyrics, \"LiveMVOverlayView_UpdateLyrics at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Interactions.Live.dll",
+        "PRISM.Interactions.Live",
+        "LiveMVOverlayView",
+        "UpdateLyrics",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "TimelineController_SetLyric",
+      "line": 4208,
+      "code": "ADD_HOOK(TimelineController_SetLyric, \"TimelineController_SetLyric at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM",
+        "TimelineController",
+        "SetLyric",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "get_baseCamera",
+      "line": 4209,
+      "code": "ADD_HOOK(get_baseCamera, \"get_baseCamera at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM",
+        "CameraController",
+        "get_BaseCamera",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_get_position",
+      "line": 4210,
+      "code": "ADD_HOOK(Unity_get_position, \"Unity_get_position at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Transform",
+        "get_position",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_set_position",
+      "line": 4211,
+      "code": "ADD_HOOK(Unity_set_position, \"Unity_set_position at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Transform",
+        "set_position",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_get_fieldOfView",
+      "line": 4212,
+      "code": "ADD_HOOK(Unity_get_fieldOfView, \"Unity_get_fieldOfView at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Camera",
+        "get_fieldOfView",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_set_fieldOfView",
+      "line": 4213,
+      "code": "ADD_HOOK(Unity_set_fieldOfView, \"Unity_set_fieldOfView at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Camera",
+        "set_fieldOfView",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_InternalLookAt",
+      "line": 4214,
+      "code": "ADD_HOOK(Unity_InternalLookAt, \"Unity_InternalLookAt at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Transform",
+        "Internal_LookAt",
+        2
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_set_nearClipPlane",
+      "line": 4215,
+      "code": "ADD_HOOK(Unity_set_nearClipPlane, \"Unity_set_nearClipPlane at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Camera",
+        "set_nearClipPlane",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_get_nearClipPlane",
+      "line": 4216,
+      "code": "ADD_HOOK(Unity_get_nearClipPlane, \"Unity_get_nearClipPlane at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Camera",
+        "get_nearClipPlane",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_get_farClipPlane",
+      "line": 4217,
+      "code": "ADD_HOOK(Unity_get_farClipPlane, \"Unity_get_farClipPlane at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Camera",
+        "get_farClipPlane",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_set_farClipPlane",
+      "line": 4218,
+      "code": "ADD_HOOK(Unity_set_farClipPlane, \"Unity_set_farClipPlane at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Camera",
+        "set_farClipPlane",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_get_rotation",
+      "line": 4219,
+      "code": "ADD_HOOK(Unity_get_rotation, \"Unity_get_rotation at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Transform",
+        "get_rotation",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_set_rotation",
+      "line": 4220,
+      "code": "ADD_HOOK(Unity_set_rotation, \"Unity_set_rotation at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "Transform",
+        "set_rotation",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "TMP_Text_set_text",
+      "line": 4222,
+      "code": "ADD_HOOK(TMP_Text_set_text, \"TMP_Text_set_text at %p\");",
+      "kind": "method",
+      "target": [
+        "Unity.TextMeshPro.dll",
+        "TMPro",
+        "TMP_Text",
+        "set_text",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "UITextMeshProUGUI_Awake",
+      "line": 4223,
+      "code": "ADD_HOOK(UITextMeshProUGUI_Awake, \"UITextMeshProUGUI_Awake at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "ENTERPRISE.UI",
+        "UITextMeshProUGUI",
+        "Awake",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "ScenarioManager_Init",
+      "line": 4224,
+      "code": "ADD_HOOK(ScenarioManager_Init, \"ScenarioManager_Init at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM.Scenario",
+        "ScenarioManager",
+        "_initializeAsync",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "DataFile_GetBytes",
+      "line": 4225,
+      "code": "ADD_HOOK(DataFile_GetBytes, \"DataFile_GetBytes at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM",
+        "DataFile",
+        "GetBytes",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "TextLog_AddLog",
+      "line": 4227,
+      "code": "ADD_HOOK(TextLog_AddLog, \"TextLog_AddLog at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM.Scenario",
+        "TextLog",
+        "AddLog",
+        4
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "InvokeMoveNext",
+      "line": 4228,
+      "code": "ADD_HOOK(InvokeMoveNext, \"InvokeMoveNext at %p\");",
+      "kind": "method",
+      "target": [
+        "UnityEngine.CoreModule.dll",
+        "UnityEngine",
+        "SetupCoroutine",
+        "InvokeMoveNext",
+        2
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "DepthOfFieldClip_CreatePlayable",
+      "line": 4230,
+      "code": "ADD_HOOK(DepthOfFieldClip_CreatePlayable, \"DepthOfFieldClip_CreatePlayable at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM",
+        "DepthOfFieldClip",
+        "CreatePlayable",
+        2
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "AssembleCharacter_ApplyParam",
+      "line": 4239,
+      "code": "ADD_HOOK(AssembleCharacter_ApplyParam, \"AssembleCharacter_ApplyParam at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM",
+        "AssembleCharacter",
+        "ApplyParam",
+        6
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "MainThreadDispatcher_LateUpdate",
+      "line": 4240,
+      "code": "ADD_HOOK(MainThreadDispatcher_LateUpdate, \"MainThreadDispatcher_LateUpdate at %p\");",
+      "kind": "method",
+      "target": [
+        "UniRx.dll",
+        "UniRx",
+        "MainThreadDispatcher",
+        "LateUpdate",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "LiveMVUnitConfirmationModel_ctor",
+      "line": 4245,
+      "code": "ADD_HOOK(LiveMVUnitConfirmationModel_ctor, \"LiveMVUnitConfirmationModel_ctor at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Service.dll",
+        "PRISM.Service.Live",
+        "LiveMvUnitConfirmationModel",
+        ".ctor",
+        5
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "RunwayUnitConfirmationModel_ctor",
+      "line": 4246,
+      "code": "ADD_HOOK(RunwayUnitConfirmationModel_ctor, \"RunwayUnitConfirmationModel_ctor at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Adapters.dll",
+        "PRISM.Adapters",
+        "RunwayUnitConfirmationModel",
+        ".ctor",
+        6
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "SwayString_SetupPoint",
+      "line": 4247,
+      "code": "ADD_HOOK(SwayString_SetupPoint, \"SwayString_SetupPoint at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM",
+        "SwayString",
+        "SetupPoint",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "LiveMVUnit_GetMemberChangeRequestData",
+      "line": 4248,
+      "code": "ADD_HOOK(LiveMVUnit_GetMemberChangeRequestData, \"LiveMVUnit_GetMemberChangeRequestData at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM.Live",
+        "LiveMVUnit",
+        "GetMemberChangeRequestData",
+        3
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "LiveMVUnitMemberChangePresenter_initializeAsync_b_4_MoveNext",
+      "line": 4249,
+      "code": "ADD_HOOK(LiveMVUnitMemberChangePresenter_initializeAsync_b_4_MoveNext, \"LiveMVUnitMemberChangePresenter_initializeAsync_b_4_MoveNext at %p\");",
+      "kind": "nested_state_machine",
+      "target": null,
+      "probe_covered": true
+    },
+    {
+      "hook": "MvUnitSlotGenerator_NewMvUnitSlot",
+      "line": 4250,
+      "code": "ADD_HOOK(MvUnitSlotGenerator_NewMvUnitSlot, \"MvUnitSlotGenerator_NewMvUnitSlot at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM",
+        "MvUnitSlotGenerator",
+        "NewMvUnitSlot",
+        2
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "LiveUnitMemberChangeViewModel_sameIdolPredicate",
+      "line": 4251,
+      "code": "ADD_HOOK(LiveUnitMemberChangeViewModel_sameIdolPredicate, \"LiveUnitMemberChangeViewModel same-idol predicate at %p\");",
+      "kind": "nested_same_idol_consumer",
+      "target": null,
+      "probe_covered": true
+    },
+    {
+      "hook": "LiveMvUnitMemberChangeViewModel_buildIdolViewModel",
+      "line": 4252,
+      "code": "ADD_HOOK(LiveMvUnitMemberChangeViewModel_buildIdolViewModel, \"LiveMvUnitMemberChangeViewModel idol-row builder at %p\");",
+      "kind": "nested_same_idol_consumer",
+      "target": null,
+      "probe_covered": true
+    },
+    {
+      "hook": "CriWareErrorHandler_HandleMessage",
+      "line": 4255,
+      "code": "ADD_HOOK(CriWareErrorHandler_HandleMessage, \"CriWareErrorHandler_HandleMessage at %p\");",
+      "kind": "method",
+      "target": [
+        "CriMw.CriWare.Runtime.dll",
+        "CriWare",
+        "CriWareErrorHandler",
+        "HandleMessage",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "GGIregualDetector_ShowPopup",
+      "line": 4256,
+      "code": "ADD_HOOK(GGIregualDetector_ShowPopup, \"GGIregualDetector_ShowPopup at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM",
+        "GGIregualDetector",
+        "ShowPopup",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "DMMGameGuard_NPGameMonCallback",
+      "line": 4257,
+      "code": "ADD_HOOK(DMMGameGuard_NPGameMonCallback, \"DMMGameGuard_NPGameMonCallback at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM",
+        "DMMGameGuard",
+        "NPGameMonCallback",
+        2
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "DMMGameGuard_SetCheckMode",
+      "line": 4259,
+      "code": "ADD_HOOK(DMMGameGuard_SetCheckMode, \"DMMGameGuard_SetCheckMode at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM",
+        "DMMGameGuard",
+        "SetCheckMode",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "set_fps",
+      "line": 4260,
+      "code": "ADD_HOOK(set_fps, \"set_fps at %p\");",
+      "kind": "icall",
+      "target": "UnityEngine.Application::set_targetFrameRate(System.Int32)",
+      "probe_covered": true
+    },
+    {
+      "hook": "set_vsync_count",
+      "line": 4261,
+      "code": "ADD_HOOK(set_vsync_count, \"set_vsync_count at %p\");",
+      "kind": "icall",
+      "target": "UnityEngine.QualitySettings::set_vSyncCount(System.Int32)",
+      "probe_covered": true
+    },
+    {
+      "hook": "Unity_Quit",
+      "line": 4262,
+      "code": "ADD_HOOK(Unity_Quit, \"Unity_Quit at %p\");",
+      "kind": "icall",
+      "target": "UnityEngine.Application::Quit(System.Int32)",
+      "probe_covered": true
+    },
+    {
+      "hook": "LiveMVStartData_ctor",
+      "line": 4264,
+      "code": "ADD_HOOK(LiveMVStartData_ctor, \"LiveMVStartData_ctor at %p\");",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy",
+        "PRISM.Live",
+        "LiveMVStartData",
+        ".ctor",
+        9
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "LiveStartDataExtensions_PreLoadAsync",
+      "line": 4265,
+      "code": "ADD_HOOK_1(LiveStartDataExtensions_PreLoadAsync);",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM.Live",
+        "LiveStartDataExtensions",
+        "PreLoadAsync",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "Subject_OnNext",
+      "line": 4267,
+      "code": "ADD_HOOK_1(Subject_OnNext);",
+      "kind": "closed_generic_reflection",
+      "target": null,
+      "probe_covered": false
+    },
+    {
+      "hook": "MagicaCloth_BuildAndRun",
+      "line": 4268,
+      "code": "ADD_HOOK_1(MagicaCloth_BuildAndRun);",
+      "kind": "method",
+      "target": [
+        "MagicaClothV2.dll",
+        "MagicaCloth2",
+        "MagicaCloth",
+        "BuildAndRun",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "MagicaCloth_SetParameterChange",
+      "line": 4269,
+      "code": "ADD_HOOK_1(MagicaCloth_SetParameterChange);",
+      "kind": "method",
+      "target": [
+        "MagicaClothV2.dll",
+        "MagicaCloth2",
+        "MagicaCloth",
+        "SetParameterChange",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "MagicaClothController_get_Inertia",
+      "line": 4270,
+      "code": "ADD_HOOK_1(MagicaClothController_get_Inertia);",
+      "kind": "method",
+      "target": [
+        "PRISM.Module.CustomMagicaCloth.dll",
+        "PRISM.Module.CustomMagicaCloth",
+        "MagicaClothController",
+        "get_Inertia",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "MagicaClothController_get_Radius",
+      "line": 4271,
+      "code": "ADD_HOOK_1(MagicaClothController_get_Radius);",
+      "kind": "method",
+      "target": [
+        "PRISM.Module.CustomMagicaCloth.dll",
+        "PRISM.Module.CustomMagicaCloth",
+        "MagicaClothController",
+        "get_Radius",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "MagicaClothController_Awake",
+      "line": 4274,
+      "code": "ADD_HOOK_1(MagicaClothController_Awake);",
+      "kind": "method",
+      "target": [
+        "PRISM.Module.CustomMagicaCloth.dll",
+        "PRISM.Module.CustomMagicaCloth",
+        "MagicaClothController",
+        "Awake",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "CostumeChangeViewModel__ctor",
+      "line": 4276,
+      "code": "ADD_HOOK_1(CostumeChangeViewModel__ctor);",
+      "kind": "method",
+      "target": [
+        "PRISM.Adapters.dll",
+        "PRISM.Adapters.CostumeChange",
+        "CostumeChangeViewModel",
+        ".ctor",
+        6
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "CostumeChangeViewModel_CanDecide0",
+      "line": 4277,
+      "code": "ADD_HOOK_1(CostumeChangeViewModel_CanDecide0);",
+      "kind": "method",
+      "target": [
+        "PRISM.Adapters.dll",
+        "PRISM.Adapters.CostumeChange",
+        "CostumeChangeViewModel",
+        "CanDecide",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "CostumeChangeViewModel_CanDecide2",
+      "line": 4278,
+      "code": "ADD_HOOK_1(CostumeChangeViewModel_CanDecide2);",
+      "kind": "method",
+      "target": [
+        "PRISM.Adapters.dll",
+        "PRISM.Adapters.CostumeChange",
+        "CostumeChangeViewModel",
+        "CanDecide",
+        2
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "CostumeStatusExtensions_CanWear",
+      "line": 4279,
+      "code": "ADD_HOOK_1(CostumeStatusExtensions_CanWear);",
+      "kind": "method",
+      "target": [
+        "PRISM.Legacy.dll",
+        "PRISM.Domain",
+        "CostumeStatusExtensions",
+        "CanWear",
+        3
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "RefreshViewModels",
+      "line": 4280,
+      "code": "ADD_HOOK_ADDR(PRISM.Adapters.dll, PRISM.Adapters.CostumeChange, CostumeChangeViewModel, RefreshViewModels, 0);",
+      "kind": "method",
+      "target": [
+        "PRISM.Adapters.dll",
+        "PRISM.Adapters.CostumeChange",
+        "CostumeChangeViewModel",
+        "RefreshViewModels",
+        0
+      ],
+      "probe_covered": true
+    },
+    {
+      "hook": "ModifyPreview",
+      "line": 4281,
+      "code": "ADD_HOOK_ADDR(PRISM.Adapters.dll, PRISM.Adapters.CostumeChange, CostumeChangeViewModel, ModifyPreview, 1);",
+      "kind": "method",
+      "target": [
+        "PRISM.Adapters.dll",
+        "PRISM.Adapters.CostumeChange",
+        "CostumeChangeViewModel",
+        "ModifyPreview",
+        1
+      ],
+      "probe_covered": true
+    }
+  ],
+  "disabled_hooks": [
+    {
+      "hook": "UnsafeLoadBytesFromKey",
+      "line": 4226,
+      "code": "//ADD_HOOK(UnsafeLoadBytesFromKey, \"UnsafeLoadBytesFromKey at %p\");"
+    },
+    {
+      "hook": "Live_SetEnableDepthOfField",
+      "line": 4229,
+      "code": "// ADD_HOOK(Live_SetEnableDepthOfField, \"Live_SetEnableDepthOfField at %p\");"
+    },
+    {
+      "hook": "PostProcess_DepthOfFieldClip_CreatePlayable",
+      "line": 4231,
+      "code": "//ADD_HOOK(PostProcess_DepthOfFieldClip_CreatePlayable, \"PostProcess_DepthOfFieldClip_CreatePlayable at %p\");"
+    },
+    {
+      "hook": "Live_Update",
+      "line": 4232,
+      "code": "// ADD_HOOK(Live_Update, \"Live_Update at %p\");"
+    },
+    {
+      "hook": "LiveCostumeChangeView_setTryOnMode",
+      "line": 4233,
+      "code": "//ADD_HOOK(LiveCostumeChangeView_setTryOnMode, \"LiveCostumeChangeView_setTryOnMode at %p\");"
+    },
+    {
+      "hook": "LiveCostumeChangeView_setIdolCostume",
+      "line": 4234,
+      "code": "//ADD_HOOK(LiveCostumeChangeView_setIdolCostume, \"LiveCostumeChangeView_setIdolCostume at %p\");"
+    },
+    {
+      "hook": "LiveCostumeChangeModel_GetDress",
+      "line": 4235,
+      "code": "//ADD_HOOK(LiveCostumeChangeModel_GetDress, \"LiveCostumeChangeModel_GetDress at %p\");"
+    },
+    {
+      "hook": "LiveCostumeChangeModel_GetHairstyle",
+      "line": 4236,
+      "code": "//ADD_HOOK(LiveCostumeChangeModel_GetHairstyle, \"LiveCostumeChangeModel_GetHairstyle at %p\");"
+    },
+    {
+      "hook": "LiveCostumeChangeModel_GetAccessory",
+      "line": 4237,
+      "code": "//ADD_HOOK(LiveCostumeChangeModel_GetAccessory, \"LiveCostumeChangeModel_GetAccessory at %p\");"
+    },
+    {
+      "hook": "LiveCostumeChangeModel_ctor",
+      "line": 4238,
+      "code": "//ADD_HOOK(LiveCostumeChangeModel_ctor, \"LiveCostumeChangeModel_ctor at %p\");"
+    },
+    {
+      "hook": "dic_int_ICostumeStatus_add",
+      "line": 4241,
+      "code": "//ADD_HOOK(dic_int_ICostumeStatus_add, \"dic_int_ICostumeStatus_add at %p\");"
+    },
+    {
+      "hook": "GetCostumeListReply_get_CostumeList",
+      "line": 4242,
+      "code": "//ADD_HOOK(GetCostumeListReply_get_CostumeList, \"GetCostumeListReply_get_CostumeList at %p\");"
+    },
+    {
+      "hook": "GetCostumeListReply_get_HairstyleList",
+      "line": 4243,
+      "code": "//ADD_HOOK(GetCostumeListReply_get_HairstyleList, \"GetCostumeListReply_get_HairstyleList at %p\");"
+    },
+    {
+      "hook": "GetCostumeListReply_get_AccessoryList",
+      "line": 4244,
+      "code": "//ADD_HOOK(GetCostumeListReply_get_AccessoryList, \"GetCostumeListReply_get_AccessoryList at %p\");"
+    },
+    {
+      "hook": "CheckVocalSeparatedSatisfy",
+      "line": 4253,
+      "code": "//ADD_HOOK(CheckVocalSeparatedSatisfy, \"CheckVocalSeparatedSatisfy at %p\");"
+    },
+    {
+      "hook": "CheckLimitedVocalSeparatedSatisfy_2",
+      "line": 4254,
+      "code": "//ADD_HOOK(CheckLimitedVocalSeparatedSatisfy_2, \"CheckLimitedVocalSeparatedSatisfy_2 at %p\");"
+    },
+    {
+      "hook": "DMMGameGuard_Setup",
+      "line": 4258,
+      "code": "// ADD_HOOK(DMMGameGuard_Setup, \"DMMGameGuard_Setup at %p\");"
+    },
+    {
+      "hook": "BodyParamFloatProperty__ctor",
+      "line": 4272,
+      "code": "//ADD_HOOK_1(BodyParamFloatProperty__ctor);"
+    },
+    {
+      "hook": "BodyParamFloatProperty__getValue",
+      "line": 4273,
+      "code": "//ADD_HOOK_1(BodyParamFloatProperty__getValue);"
+    }
+  ],
+  "probe_specs": [
+    {
+      "assembly": "mscorlib.dll",
+      "namespace": "System",
+      "class": "Environment",
+      "method": "get_StackTrace",
+      "argc": 0
+    },
+    {
+      "assembly": "mscorlib.dll",
+      "namespace": "System.IO",
+      "class": "File",
+      "method": "ReadAllBytes",
+      "argc": 1
+    },
+    {
+      "assembly": "UnityEngine.AssetBundleModule.dll",
+      "namespace": "UnityEngine",
+      "class": "AssetBundle",
+      "method": "LoadFromFile",
+      "argc": 3
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Object",
+      "method": "IsNativeObjectAlive",
+      "argc": 1
+    },
+    {
+      "assembly": "UnityEngine.AssetBundleModule.dll",
+      "namespace": "UnityEngine",
+      "class": "AssetBundle",
+      "method": "LoadAsset_Internal",
+      "argc": 2
+    },
+    {
+      "assembly": "UnityEngine.TextRenderingModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Font",
+      "method": "HasCharacter",
+      "argc": 1
+    },
+    {
+      "assembly": "Unity.TextMeshPro.dll",
+      "namespace": "TMPro",
+      "class": "TMP_FontAsset",
+      "method": "CreateFontAsset",
+      "argc": 1
+    },
+    {
+      "assembly": "Unity.TextMeshPro.dll",
+      "namespace": "TMPro",
+      "class": "TMP_FontAsset",
+      "method": "HasCharacter",
+      "argc": 1
+    },
+    {
+      "assembly": "Unity.TextMeshPro.dll",
+      "namespace": "TMPro",
+      "class": "TMP_Text",
+      "method": "set_font",
+      "argc": 1
+    },
+    {
+      "assembly": "Unity.TextMeshPro.dll",
+      "namespace": "TMPro",
+      "class": "TMP_Text",
+      "method": "get_font",
+      "argc": 0
+    },
+    {
+      "assembly": "Unity.TextMeshPro.dll",
+      "namespace": "TMPro",
+      "class": "TMP_Text",
+      "method": "set_text",
+      "argc": 1
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "ENTERPRISE.UI",
+      "class": "UITextMeshProUGUI",
+      "method": "Awake",
+      "argc": 0
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM.Scenario",
+      "class": "ScenarioManager",
+      "method": "_initializeAsync",
+      "argc": 1
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM",
+      "class": "DataFile",
+      "method": "GetBytes",
+      "argc": 1
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM",
+      "class": "DataFile",
+      "method": "IsKeyExist",
+      "argc": 1
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Screen",
+      "method": "SetResolution",
+      "argc": 3
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM.Scenario",
+      "class": "TextLog",
+      "method": "AddLog",
+      "argc": 4
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM.Domain",
+      "class": "StoryExtensions",
+      "method": "IsLocked",
+      "argc": 1
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "ENTERPRISE.Localization",
+      "class": "LocalizationManager",
+      "method": "GetTextOrNull",
+      "argc": 2
+    },
+    {
+      "assembly": "Prism.Rendering.Runtime.dll",
+      "namespace": "PRISM.Rendering",
+      "class": "RenderManager",
+      "method": "GetResolutionSize",
+      "argc": 1
+    },
+    {
+      "assembly": "PRISM.Interactions.Live.dll",
+      "namespace": "PRISM.Interactions.Live",
+      "class": "LiveMVOverlayView",
+      "method": "UpdateLyrics",
+      "argc": 1
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM",
+      "class": "TimelineController",
+      "method": "SetLyric",
+      "argc": 1
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM",
+      "class": "CameraController",
+      "method": "get_BaseCamera",
+      "argc": 0
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Transform",
+      "method": "get_position",
+      "argc": 0
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Transform",
+      "method": "set_position",
+      "argc": 1
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Camera",
+      "method": "get_fieldOfView",
+      "argc": 0
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Camera",
+      "method": "set_fieldOfView",
+      "argc": 1
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Transform",
+      "method": "Internal_LookAt",
+      "argc": 2
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Camera",
+      "method": "set_nearClipPlane",
+      "argc": 1
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Camera",
+      "method": "get_nearClipPlane",
+      "argc": 0
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Camera",
+      "method": "get_farClipPlane",
+      "argc": 0
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Camera",
+      "method": "set_farClipPlane",
+      "argc": 1
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Transform",
+      "method": "get_rotation",
+      "argc": 0
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "Transform",
+      "method": "set_rotation",
+      "argc": 1
+    },
+    {
+      "assembly": "UnityEngine.CoreModule.dll",
+      "namespace": "UnityEngine",
+      "class": "SetupCoroutine",
+      "method": "InvokeMoveNext",
+      "argc": 2
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM",
+      "class": "DepthOfFieldClip",
+      "method": "CreatePlayable",
+      "argc": 2
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM",
+      "class": "AssembleCharacter",
+      "method": "ApplyParam",
+      "argc": 6
+    },
+    {
+      "assembly": "UniRx.dll",
+      "namespace": "UniRx",
+      "class": "MainThreadDispatcher",
+      "method": "LateUpdate",
+      "argc": 0
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM.Live",
+      "class": "LiveMVUnit",
+      "method": "GetMemberChangeRequestData",
+      "argc": 3
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM",
+      "class": "MvUnitSlotGenerator",
+      "method": "NewMvUnitSlot",
+      "argc": 2
+    },
+    {
+      "assembly": "CriMw.CriWare.Runtime.dll",
+      "namespace": "CriWare",
+      "class": "CriWareErrorHandler",
+      "method": "HandleMessage",
+      "argc": 1
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM",
+      "class": "GGIregualDetector",
+      "method": "ShowPopup",
+      "argc": 1
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM",
+      "class": "DMMGameGuard",
+      "method": "NPGameMonCallback",
+      "argc": 2
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM",
+      "class": "DMMGameGuard",
+      "method": "SetCheckMode",
+      "argc": 1
+    },
+    {
+      "assembly": "PRISM.Service.dll",
+      "namespace": "PRISM.Service.Live",
+      "class": "LiveMvUnitConfirmationModel",
+      "method": ".ctor",
+      "argc": 5
+    },
+    {
+      "assembly": "PRISM.Adapters.dll",
+      "namespace": "PRISM.Adapters",
+      "class": "RunwayUnitConfirmationModel",
+      "method": ".ctor",
+      "argc": 6
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM",
+      "class": "SwayString",
+      "method": "SetupPoint",
+      "argc": 0
+    },
+    {
+      "assembly": "PRISM.Legacy",
+      "namespace": "PRISM.Live",
+      "class": "LiveMVStartData",
+      "method": ".ctor",
+      "argc": 9
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM.Live",
+      "class": "LiveStartDataExtensions",
+      "method": "PreLoadAsync",
+      "argc": 1
+    },
+    {
+      "assembly": "MagicaClothV2.dll",
+      "namespace": "MagicaCloth2",
+      "class": "MagicaCloth",
+      "method": "BuildAndRun",
+      "argc": 0
+    },
+    {
+      "assembly": "MagicaClothV2.dll",
+      "namespace": "MagicaCloth2",
+      "class": "MagicaCloth",
+      "method": "SetParameterChange",
+      "argc": 0
+    },
+    {
+      "assembly": "PRISM.Module.CustomMagicaCloth.dll",
+      "namespace": "PRISM.Module.CustomMagicaCloth",
+      "class": "MagicaClothController",
+      "method": "get_Inertia",
+      "argc": 0
+    },
+    {
+      "assembly": "PRISM.Module.CustomMagicaCloth.dll",
+      "namespace": "PRISM.Module.CustomMagicaCloth",
+      "class": "MagicaClothController",
+      "method": "get_Radius",
+      "argc": 0
+    },
+    {
+      "assembly": "PRISM.Module.CustomMagicaCloth.dll",
+      "namespace": "PRISM.Module.CustomMagicaCloth",
+      "class": "MagicaClothController",
+      "method": "Awake",
+      "argc": 0
+    },
+    {
+      "assembly": "PRISM.Adapters.dll",
+      "namespace": "PRISM.Adapters.CostumeChange",
+      "class": "CostumeChangeViewModel",
+      "method": "Apply",
+      "argc": 0
+    },
+    {
+      "assembly": "PRISM.Adapters.dll",
+      "namespace": "PRISM.Adapters.CostumeChange",
+      "class": "CostumeChangeViewModel",
+      "method": ".ctor",
+      "argc": 6
+    },
+    {
+      "assembly": "PRISM.Adapters.dll",
+      "namespace": "PRISM.Adapters.CostumeChange",
+      "class": "CostumeChangeViewModel",
+      "method": "CanDecide",
+      "argc": 0
+    },
+    {
+      "assembly": "PRISM.Adapters.dll",
+      "namespace": "PRISM.Adapters.CostumeChange",
+      "class": "CostumeChangeViewModel",
+      "method": "CanDecide",
+      "argc": 2
+    },
+    {
+      "assembly": "PRISM.Legacy.dll",
+      "namespace": "PRISM.Domain",
+      "class": "CostumeStatusExtensions",
+      "method": "CanWear",
+      "argc": 3
+    },
+    {
+      "assembly": "PRISM.Adapters.dll",
+      "namespace": "PRISM.Adapters.CostumeChange",
+      "class": "CostumeChangeViewModel",
+      "method": "RefreshViewModels",
+      "argc": 0
+    },
+    {
+      "assembly": "PRISM.Adapters.dll",
+      "namespace": "PRISM.Adapters.CostumeChange",
+      "class": "CostumeChangeViewModel",
+      "method": "ModifyPreview",
+      "argc": 1
+    }
+  ]
+}
