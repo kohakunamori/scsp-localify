@@ -4,232 +4,392 @@
 
 [简体中文](README.md) | English
 
-iM@S SCSP localify plugin.
+Localization and feature-extension plugin for the DMM version of THE IDOLM@STER Shiny Colors: Song for Prism (SCSP).
 
-**Note: Using external plugins violates the game's terms of service. If your account is banned due to plugin usage, the consequences are solely your responsibility.**
+**Third-party plugins may violate the game's terms of service. You are responsible for account and data risks resulting from their use.**
 
 </div>
 
+## Project status
 
+This fork continues upstream `scsp-localify` development and carries additional **SCSP 2.17** compatibility work, a full 2.17 target, a localization-only target, and a compatibility probe.
 
-# Instructions for Use
+The current `main` keeps two build families:
 
-- Simply unzip the plugin into the game installation directory (`version.dll` and `imasscprism.exe` should be in the same directory).
-- Upon launching the game, if you see the console (make sure to open `enableConsole`), the installation is successful.
+- **Standard/compatible build**: `generate.bat` + `build/ImasSCSP-localify.sln`, producing `version.dll`. GitHub Actions packages this path as the public artifact.
+- **SCSP 2.17 maintenance targets**:
+  - `build-full-2.17.bat`: full plugin, producing `scsp_localify_plugin.dll`;
+  - `build-lite.bat`: smaller localization-only plugin, producing `scsp_localify_plugin.dll`;
+  - `build-probe.bat`: compatibility probe for 2.17 methods and icalls.
 
+`scsp_localify_plugin.dll` is a plugin-form development/integration target and needs a compatible loader. **Do not simply rename it to `version.dll`.** Regular users should prefer the standard build or public release/Actions artifact.
 
+Simplified-Chinese data is maintained in the public [kohakunamori/SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData) repository and pinned through the `resources/schinese` submodule.
 
-# Function List
+This public repository is for plugin source, public resources, and build material only. Do not commit account data, startup arguments, tokens, logs, captures, game files, personal paths, or private-project material.
 
-- Dump Text
-- Localization, Font Replacement
-- Unlock Frame Rate
-- Switching Windows Without Pausing
-- Free Camera
-- Live MV Related **(Modify in GUI)**
-  - Freedom to Choose Costumes, Wear Other Characters' Clothes
-  - Allow Same Idol Appearance
-  - Edit on-stage idols manually, allowing to select unlocked idols
-- Real-time Modification of Character Body Parameters, Adjust Height, Head, Chest, Arm, and Palm Size **(Modify in GUI)**
-- Runtime texture extracting and replacing
-- Copying body pose data
+## Features
 
+### Localization
 
+- primary Localify text replacement;
+- `local2.json` runtime/UI string replacement;
+- lyrics replacement;
+- scenario JSON replacement;
+- custom font and font-size adjustment;
+- untranslated text/lyrics/JSON dumping.
 
+### Display and performance
 
-# Configuration Instructions
+- frame-rate override;
+- VSync / `vSyncCount`;
+- startup resolution;
+- 3D render scale;
+- block pause-on-focus-loss;
+- live GUI controls for several performance options.
 
-- Configuration items are located in the `scsp-config.json` file.
+For SCSP 2.17, 3D render scale has been migrated to the active URP `UniversalRenderPipelineAsset.renderScale` owner. FPS/VSync uses explicit Unity `Application.targetFrameRate` and `QualitySettings.vSyncCount` setter/getter paths.
 
-| Configuration Item    | Type      | Default Value                         | Description                                            |
-| --------------------- | --------- | ------------------------------------- | ------------------------------------------------------ |
-| enableConsole         | Bool      | `true`                                | Enable console                                         |
-| showStartCommand      | Bool      | `false`                               | Output start command<br>*Note: Personal token is contained in startup args* |
-| enableVSync           | Bool      | `false`                               | Enable vertical sync                                   |
-| maxFps                | Int       | `60`                                  | Maximum frame rate<br>When `enableVSync` is enabled, this configuration is ineffective |
-| 3DResolutionScale | Float | `1.0` | 3D resolution render scale |
-| localifyBasePath      | String    | `scsp_localify`                      | Localization file directory                            |
-| hotKey                | String (Char) | `u`                               | Press `Ctrl` + this configured hotkey to **open the plugin GUI** |
-| dumpUntransLyrics     | Bool      | `false`                               | Dump untranslated lyrics                               |
-| dumpUntransLocal2     | Bool      | `false`                               | Dump untranslated text                                 |
-| autoDumpAllJson       | Bool      | `false`                               | Dump all loaded JSON files                             |
-| ~~extraAssetBundlePaths~~ | ~~String[]~~  | ~~`["scsp_localify/scsp-bundle"]`~~       | ~~Custom asset bundle paths~~<br> **This option is obsolete** <br>Use format `asset_bundle_path::asset_path` to specify an exact asset to use. |
-| customFontPath        | String    | `scsp_localify/scsp-bundle::assets/font/sbtphumminge-regular.ttf` | Custom font path in asset bundles<br>Used for replacing built-in fonts in the game |
-| blockOutOfFocus       | Bool      | `true`                                | Intercept window out-of-focus events<br>Game won't pause when switching to other windows |
-| baseFreeCamera        | [BaseFreeCamera](#BaseFreeCamera) Object | [BaseFreeCamera](#BaseFreeCamera) | Free camera configuration                             |
-| unlockPIdolAndSCharaEvents | Bool | `false` | Unlock Idol Event (アイドルイベント) and Support Event (サポートイベント) in `Characters` - `Overview` |
-| startResolution | [Resolution](#Resolution) Object | [Resolution](#Resolution) | Game window resolution |
+### Live / MV
 
+- Free Camera / FOV;
+- same-idol multi-position support;
+- MV unit/idol overrides;
+- costume save/replace and related costume options;
+- separated-vocal override for compatible songs/units.
 
+### Character and resource tools
 
-### BaseFreeCamera
+- live character body-parameter editing;
+- MagicaCloth tuning;
+- runtime texture extraction/replacement;
+- pose copy/apply tools;
+- selected story/costume unlock functions.
 
-| Configuration Item | Type   | Default Value | Description         |
-| ------------------ | ------ | ------------- | --------------------|
-| enable             | Bool   | `false`       | Enable free camera  |
-| moveStep           | Float  | `50`          | Camera movement speed |
-| mouseSpeed         | Float  | `35`          | Mouse sensitivity for camera movement |
+Some advanced features are tightly coupled to current game internals. Their presence in the source does not imply that every combination is stable on every game version. See [docs/full-functionality-2.17.md](docs/full-functionality-2.17.md) for the current 2.17 validation boundary.
 
+## Quick start
 
+### Use the GitHub Actions artifact
 
-### Resolution
+CI packages:
 
-| Configuration Item | Type | Default Value | Description    |
-| ------------------ | ---- | ------------- | -------------- |
-| w                  | Int  | `1280`        | Window width   |
-| h                  | Int  | `720`         | Window height  |
-| isFull             | Bool | `false`       | Is full screen |
+```text
+version.dll
+scsp-config.json
+scsp_localify/
+```
 
+Place them in the game directory so that `version.dll` is next to `imasscprism.exe`.
 
+Back up an existing `version.dll` and configuration before replacing anything.
 
-# Free Camera Instructions
+If `enableConsole=true`, a console appearing at startup is a simple indication that the plugin loaded.
 
-> The following is the default key binding, and can be customized by config files.
+> `showStartCommand` prints game startup arguments. Those arguments may contain sensitive tokens. Keep this option disabled unless you are debugging locally, and never upload raw startup logs to an Issue or PR.
 
-- Set `enable` under `baseFreeCamera` in `scsp-config.json` to `true`.
-- Scope of application: All 3D scenes. Including but not limited to homepage, story, Live.
-> With the unity engine updating in game v2.6.1, there're still unfixed bugs about free camera feature now.
+### Build the standard version.dll
 
+Requirements:
 
+- Windows x64;
+- Visual Studio 2022 / MSBuild;
+- Python;
+- Conan 2;
+- CMake;
+- Git.
 
-## Free Camera Operation Method
+Clone:
 
-- Movement: `W`, `S`, `A`, `D`
-- Ascend: `Space` (overwritten as `Alt` in config files distributed after plugin v1.3.6), Descend: `Ctrl`
-- Reset camera: `R`
+```bash
+git clone --recursive https://github.com/kohakunamori/scsp-localify.git
+cd scsp-localify
+```
 
-- Camera Rotation: 
-  - Keyboard: `↑`, `↓`, `←`, `→`
-  - Mouse: 
-    - Press the ` key (located to the left of the number keys, above the TAB key)
-    - Or **hold down** the right mouse button
-- Adjust Field of View (FOV)
-  - Keyboard: `Q`, `E`
-  - Or mouse scroll wheel
+For an existing clone:
 
+```bash
+git submodule update --init --recursive
+```
 
- ## Customizing free camera key bindings
- - All config items are also located in the `scsp-config.json` file.
- - As the update of game v2.9.0 introduced some key bindings, the default camera ascending key binding `Space` is bound to `Alt` in the config files distributed after plugin v1.3.6. But if the config file isn't edited, it keeps `Space` as unchanged.
+Generate dependencies/project files:
 
-| Configuration Item          | Default Value             |
-| --------------------------- | ------------------------- |
-| key_w_camera_forward        | `W`                       |
-| key_s_camera_back           | `S`                       |
-| key_a_camera_left           | `A`                       |
-| key_d_camera_right          | `D`                       |
-| key_ctrl_camera_down        | `17` (ctrl)               |
-| key_space_camera_up         | `18` (alt)                |
-| key_up_cameralookat_up      | `38` (↑)                  |
-| key_down_cameralookat_down  | `40` (↓)                  |
-| key_left_cameralookat_left  | `37` (←)                  |
-| key_right_cameralookat_right| `39` (→)                  |
-| key_q_camera_fov_increase   | `Q`                       |
-| key_e_camera_fov_decrease   | `E`                       |
-| key_r_camera_reset          | `R`                       |
-| key_192_camera_mouseMove    | `192` (`` ` ``, backtick) |
+```bat
+generate.bat
+```
 
+Open:
 
-About JSON value: For key bindings, two types of values are acceptable:
-- `char[1]` single character string, wrapped by double quotes, to express the letter key, like `"W"` for key W
-- `int` an integer to bind to a windows virtual key directly, see also https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+```text
+build/ImasSCSP-localify.sln
+```
 
+and build `Release | x64`.
 
-# Live MV Instructions
+Output:
 
-- When `Save & Replace costume changes` is checked, all costume changes will be recorded, locked costumes can also be recorded by clicking the Try-On button in the game, or casual costumes can be selected in the DressOrder interface, and all the changes will be applied automatically when MV starts; unwanted records can be removed using the `Remove` button in the "Saved Costume Data" sub-window to cancel them.
-- When `Save & Replace costume changes` is checked and `Override MV unit idols` is checked, the last costume data can be saved by clicking the `Slot X` buttons in the "Override MvUnit Idols" sub-window; different slots can be used to record the same idol to achieve multiple appearances of the same idol with different costumes, and unrecorded slots will inherit the original data of the idols in the selected live unit.
-- In "Override MvUnit Idols" sub-window, clicking data to edit JSON data manually. (Note: When editing `CharaId` manually, it's suggested to use `1` (the default) for `HairId` to avoid freezing)
+```text
+build/bin/x64/Release/version.dll
+```
 
+### Build the SCSP 2.17 maintenance targets
 
-# Magica Cloth Settings
+Full plugin:
 
-All relative settings can be adjusted in in-game GUI, all these values inside configuration file `scsp-config.json` only affect initialization.
+```bat
+build-full-2.17.bat
+```
 
-Detailed descriptions of properties can be checked at the official document: https://magicasoft.jp/mc2_about/
+Output:
 
+```text
+build-full-2.17/bin/x64/Release/scsp_localify_plugin.dll
+```
 
-| Configuration Item                  | Default Value                |
-| ----------------------------------- | ---------------------------- |
-| magicacloth_override                | `false`                      |
-| magicacloth_inertia_min †           | `1.0f`                       |
-| magicacloth_inertia_max †           | `1.0f`                       |
-| magicacloth_radius_min †            | `0.002f`                     |
-| magicacloth_radius_max †            | `0.028f`                     |
-| magicacloth_damping                 | `0.01f`                      |
-| magicacloth_movementSpeedLimit      | `10.0f`                      |
-| magicacloth_rotationSpeedLimit      | `1440.0f`                    |
-| magicacloth_localMovementSpeedLimit | `10.0f`                      |
-| magicacloth_localRotationSpeedLimit | `1440.0f`                    |
-| magicacloth_particleSpeedLimit      | `40.0f`                      |
-| magicacloth_limitAngle              | `90.0f`                      |
-| magicacloth_springLimitDistance     | `0.5f`                       |
-| magicacloth_springNoise             | `0.1f`                       |
+Localization-only plugin:
 
-† Properties `Inertia` and `Radius` come from `MagicaClothController`
+```bat
+build-lite.bat
+```
 
+Output:
 
-# How to Localize
+```text
+build-lite/bin/x64/Release/scsp_localify_plugin.dll
+```
 
-- After localizing the Json files in the dumps directory, place them in the `scsp_localify` directory.
-- Localization Repository (Chinese): [SCSPTranslationData](https://github.com/ShinyGroup/SCSPTranslationData) Contributors are welcome to contribute their translations~
+Compatibility probe:
 
+```bat
+build-probe.bat
+```
 
+These 2.17 targets are primarily for compatibility development, validation, and integration. They are not drop-in replacements for the standard `version.dll` package.
 
-## Dump Original Text Yourself
-- The UI text in the game can be roughly divided into three categories.
+## Translation data
 
-  - 1. Loaded through the game's `Localify` interface
-  - 2. Loaded without using the `Localify` interface
-  - 3. Loaded directly through Json (this part includes not only text but also other things like camera data, character actions, etc., which can be replaced by the plugin.)
+The default path is:
 
-  
+```json
+"localifyBasePath": "scsp_localify"
+```
 
-- The first category corresponds to `localify.json`
+A recursive clone provides translation data under:
 
-- The second category corresponds to `local2.json` and `lyrics.json`
+```text
+resources/schinese/scsp_localify/
+```
 
-- Files other than these correspond to the third category
+It currently includes:
 
-- (Some UI text goes through `Localify`, some don't, it's strange.)
+- `localify.json`;
+- `local2.json`;
+- `lyrics.json`;
+- `scenario/`;
+- localization resources.
 
+If the directory is empty:
 
+```bash
+git submodule update --init --recursive
+```
 
-### Story and Some UI Text Dump
-After logging into the game, go to the story reading interface, press `ctrl` + `u`, a control window will pop up, check `Waiting Extract Text`, then click on any story title, and the story text and `localify.json` will be automatically dumped.
+See [kohakunamori/SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData) for translation usage and contribution instructions.
 
+## Configuration
 
+Configuration file: `scsp-config.json`.
 
-### Lyrics and Another Part of UI Text Dump
-Set `dumpUntransLyrics` and `dumpUntransLocal2` in `scsp-config.json` to `true`, then open the game. The plugin will continuously dump untranslated parts into Json in real time.
+| Key | Type | Default/common value | Description |
+| --- | --- | --- | --- |
+| `enableConsole` | Bool | `true` | Show plugin console |
+| `showStartCommand` | Bool | `false` | Print startup args; **may expose tokens** |
+| `localifyBasePath` | String | `scsp_localify` | Localization data directory |
+| `hotKey` | Char | `u` | `Ctrl + hotKey` opens the GUI |
+| `fontSizeOffset` | Int | `-3` | Font-size offset |
+| `customFontPath` | String | see default config | Custom font resource |
+| `dumpUntransLyrics` | Bool | `false` | Dump untranslated lyrics |
+| `dumpUntransLocal2` | Bool | `false` | Dump untranslated local2 strings |
+| `autoDumpAllJson` | Bool | `false` | Dump loaded game JSON |
+| `blockOutOfFocus` | Bool | `true` | Suppress pause-on-focus-loss |
+| `maxFps` | Int | `60` | Override Unity `targetFrameRate`; also live-editable in GUI |
+| `vSyncCount` | Int | unset | Explicit VSync override |
+| `enableVSync` | Bool | `false` | Legacy compatibility; `true` requests `vSyncCount=1` |
+| `3DResolutionScale` | Float | `1.0` | 3D render multiplier; SCSP 2.17 uses URP renderScale |
+| `startResolution` | Object | `1280x720` | Startup width/height/fullscreen |
+| `baseFreeCamera.enable` | Bool | `false` | Enable Free Camera |
+| `baseFreeCamera.moveStep` | Float | `50` | Movement speed |
+| `baseFreeCamera.mouseSpeed` | Float | `35` | Mouse-look speed |
+| `allowSameIdol` | Bool | `false` | Allow duplicate idols in supported Live/MV paths |
+| `saveAndReplaceCostumeChanges` | Bool | `false` | Save/replace costume changes |
+| `unlockAllDress` | Bool | `false` | Dress-unlock feature; version-sensitive |
+| `unlockPIdolAndSCharaEvents` | Bool | `false` | Story/event unlock feature |
+| `magicacloth_override` | Bool | `false` | Enable MagicaCloth overrides |
+| `diagnosticFileTrace` | Bool | `false` | Development diagnostics |
 
+Some legacy keys such as `extraAssetBundlePaths` may still be parsed for compatibility but are not recommended for new configuration.
 
-# Runtime texture extracting and replacing
-- Extracting: After checking option `Extract assets of：` and filters in GUI, textures will be extracted to `TextureDump` in the same directory to the program.
-- Replacing: Textures put inside directory `scsp_localify\textures` with exactly same names of extracted will be loaded and replaced automatically.
+## GUI
 
+By default:
 
-# Copying body pose data
-a breif instruction: https://github.com/chinosk6/scsp-localify/discussions/101
+```text
+Ctrl + U
+```
 
+opens the GUI, depending on `hotKey`.
 
-# How to build
-- Install `conan 2`, `cmake`
-- Run `generate.bat` to resolve dependencies
-- Open `build/ImasSCSP-localify.sln` in `Visual Studio 2022` to build
+The GUI exposes controls for:
 
-## Preprocessor `__SAFETYHOOK`
+- FPS/VSync/3D render scale;
+- Free Camera;
+- Live/MV idol and costume options;
+- character parameters;
+- MagicaCloth;
+- asset extraction/replacement;
+- pose tools;
+- diagnostics.
 
-### What is `safetyhook` and why to use it
-`safetyhook` inserts hooks with a higher probability of success than the default `minhook` library.
+Features that operate on live Unity objects should be used only after entering the corresponding game scene.
 
-If the plugin failed to insert hooks because of `MH_ERROR_MEMORY_ALLOC`, it's time to try `safetyhook`.
+## Free Camera
 
-### How to compile with `safetyhook`
-- Run `cmake . -B build -G "Visual Studio 17 2022"` under path `deps/safetyhook` to initialize the safetyhook project（requiring directory `build` created before）
-- Compile `deps/safetyhook/build/safetyhook.sln` in release mode
-- Add references in this project:
-    - C/C++ - General | Additional Include Directories: `..\deps\safetyhook\include`
-    - Linker - General | Additional Library Directories: `..\deps\safetyhook\build\Release`, `..\deps\safetyhook\build\_deps\zydis-build\Release`
-    - Linker - Input | Additional Dependencies: `Zydis.lib`, `safetyhook.lib`
-- Add `__SAFETYHOOK` under "C/C++ - Preprocessor | Preprocessor Definitions"
+Example:
+
+```json
+{
+  "baseFreeCamera": {
+    "enable": true,
+    "moveStep": 50,
+    "mouseSpeed": 35
+  }
+}
+```
+
+Default controls:
+
+| Action | Key |
+| --- | --- |
+| Move | `W / S / A / D` |
+| Up | `Alt` (older configs may still use `Space`) |
+| Down | `Ctrl` |
+| Reset | `R` |
+| Keyboard look | arrow keys |
+| Mouse look | hold right mouse button or toggle mouse-look mode |
+| FOV | `Q / E` or mouse wheel |
+
+Camera/Transform internals can change between game versions, so scene-level validation is still required after updates.
+
+## Live / MV notes
+
+### Same idol
+
+Enable:
+
+```json
+"allowSameIdol": true
+```
+
+The current 2.17 implementation handles the regular-Live and MV duplicate-idol consumers and keeps per-slot costume data to avoid simply broadcasting the last costume for the same character ID to every position.
+
+### MV unit override
+
+The GUI can store/edit idol and costume data per slot.
+
+A 5-member MV consumes Slot 0–4. Additional slots are not automatically used by a 5-member MV.
+
+Back up data before manually editing JSON and keep the expected object structure intact.
+
+### Forced separated vocal
+
+Use only with known-compatible songs/units. Forcing this mode on unsupported content may lead to invalid behavior.
+
+## Text dumping and localization
+
+- `localify.json`: primary Localify text tables;
+- `local2.json`: runtime/UI strings outside the primary table;
+- `lyrics.json`: lyric mappings;
+- `scenario/`: story/scenario JSON.
+
+When adding translation data, prefer contributing it to [SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData). Do not submit personal dumps, raw logs, or account-related data to this plugin repository.
+
+## Texture extraction and replacement
+
+Extraction writes matching textures to plugin dump directories.
+
+For replacement, place matching texture files under:
+
+```text
+scsp_localify/textures/
+```
+
+Asset dumping can generate many files. Do not commit personal dump output to Git.
+
+## MagicaCloth
+
+MagicaCloth values can be changed through the GUI. `magicacloth_*` config keys mainly provide initialization values.
+
+Extreme values can destabilize cloth simulation. Change a small number of parameters at a time and keep a recoverable configuration.
+
+## SCSP 2.17 compatibility
+
+Public 2.17 engineering notes:
+
+- [full feature/compatibility matrix](docs/full-functionality-2.17.md)
+- [manual interaction checklist](docs/manual-acceptance-2.17.md)
+
+Strongly validated 2.17 paths currently include the base localization chain, FPS/VSync, startup resolution, URP 3D render scale, focus-loss control, and selected Live/MV/Free-Camera/same-idol paths.
+
+Costume, story-unlock, character, MagicaCloth, extraction, and pose features remain more interaction- and version-sensitive. Successful compilation or method resolution alone is not proof that every feature will work on future game versions.
+
+## Development
+
+Standard build:
+
+```bat
+generate.bat
+```
+
+2.17 static audit:
+
+```bash
+python tools/audit_full_functionality.py
+```
+
+2.17 full build:
+
+```bat
+build-full-2.17.bat
+```
+
+Non-game loader smoke test:
+
+```text
+tools/smoke-full-plugin-non-game.ps1
+```
+
+## Security and privacy
+
+Before posting an Issue, PR, screenshot, or log, remove:
+
+- DMM/game account information;
+- tokens, cookies, and startup arguments;
+- local usernames and absolute paths;
+- private keys/certificates;
+- authentication captures;
+- official game resources or complete client files.
+
+`showStartCommand` is particularly likely to expose sensitive startup parameters and should remain disabled by default.
+
+## Upstream
+
+Based on [chinosk6/scsp-localify](https://github.com/chinosk6/scsp-localify).
+
+Translation data:
+
+- [kohakunamori/SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData)
+- upstream community data: [ShinyGroup/SCSPTranslationData](https://github.com/ShinyGroup/SCSPTranslationData)
+
+## License
+
+See [LICENSE](LICENSE).

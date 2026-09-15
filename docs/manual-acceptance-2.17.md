@@ -4,28 +4,30 @@ Reviewed: 2026-09-15.
 
 Only rendered/interactive behavior is delegated to manual acceptance. Static target resolution, build reproducibility, package integrity, startup/hook installation, trace attribution and persistent cleanup remain automated engineering gates.
 
-Run manual checks only on the paired offline/local 2.17 profile.
+Run manual checks only on a disposable/test SCSP 2.17 setup that you can restore.
 
-## One-command manual profiles
+## Public manual-test setup
 
-From `D:\Project\scsp-relive`, run one group at a time:
+The private integration/automation harness used during development is intentionally not part of this public repository. Public verification should use only the artifacts and controls present here:
 
-```powershell
-.\tools\run-full-localify-manual-group.ps1 -Group C
-```
+1. build `build-full-2.17.bat`;
+2. load the resulting `scsp_localify_plugin.dll` with your compatible loader;
+3. enable only the feature group being tested;
+4. perform the matching check below;
+5. restore your own DLL/configuration after the test.
 
-Replace `C` with `A` through `G`. The wrapper builds a group-specific full-plugin package under `runtime/local/package-full-manual-<group>-2.17`, launches the normal offline/local client, waits up to 30 minutes by default, and enables `-AllowEarlyExit`: when the check is finished, close the game normally and the harness restores the pre-run DLL/config/unlock bytes automatically.
+Do not publish game paths, account information, startup arguments, tokens, authentication logs, or details of private integration environments when reporting results.
 
-Profiles only preconfigure existing supported JSON controls; they do not invent new plugin configuration semantics:
+The test groups use existing supported JSON/GUI controls:
 
-- A/F: normal SafeSmoke ownership with diagnostic tracing; interaction remains entirely in the game/GUI.
+- A/F: baseline full-plugin configuration with diagnostic tracing; interaction remains entirely in the game/GUI.
 - B: additionally sets `3DResolutionScale=0.75` and `blockOutOfFocus=true`. B is optional because these paths have automated runtime coverage. On current 2.17, 3D scale is owned by URP `UniversalRenderPipelineAsset.renderScale`; FPS/VSync and 3D scale also expose live GUI controls/readback. Their explanations are bilingual `(?)` hover tooltips rather than permanent inline text.
 - C: enables base free camera, `allowSameIdol=true`, and the costume-save baseline. B6 owns the remigrated regular-Live/MV duplicate-idol consumers and the accepted duplicate-idol per-slot costume isolation fix; MV-unit override and forced separated vocal remain explicit GUI toggles because their payload/song compatibility is interaction-specific.
-- D: uses `FullDressOnly`, enabling only the maintained SCSP 2.17 full-plugin dress-unlock owner plus the costume-save baseline. Story unlock remains disabled; hidden-costume and auto-apply remain explicit GUI toggles.
+- D: tests the maintained SCSP 2.17 dress-unlock owner plus the costume-save baseline. Keep story-unlock disabled; hidden-costume and auto-apply remain explicit GUI toggles.
 - E: enables `magicacloth_override`; character-parameter editor remains an explicit GUI toggle.
-- G: uses `FullStoryOnly`, enabling only the full-plugin story-unlock owner. Dress unlock remains disabled. The offline Story/Costume owners stay disabled in every generated full profile.
+- G: tests the full-plugin story-unlock owner. Keep dress unlock disabled so the two ownership-sensitive paths are validated separately.
 
-After each group, report only PASS/FAIL and the failing subfeature. Engineering cleanup checks persistent state separately; do not manually reset or clean the repository or game SVN working copy.
+After each group, report only PASS/FAIL and the failing subfeature. Restore your own test environment after each run.
 
 ## Minimal grouped checks
 

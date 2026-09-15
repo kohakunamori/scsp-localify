@@ -4,234 +4,412 @@
 
 简体中文 | [English](readme_EN.md)
 
-偶像大师 闪耀色彩 棱镜之歌 **DMM 版** 本地化插件。
+《偶像大师 闪耀色彩 棱镜之歌》（SCSP）DMM 版本地化/功能扩展插件。
 
-**注意：使用外部插件属于违反游戏条款的行为。若使用插件后账号被封禁，造成的后果由用户自行承担。**
+**使用第三方插件可能违反游戏服务条款。由插件使用造成的账号或数据风险由使用者自行承担。**
 
 </div>
 
+## 项目状态
 
+本 fork 基于上游 `scsp-localify` 持续维护，并针对 **SCSP 2.17** 补充了兼容性迁移、完整插件构建、本地化专用构建和静态兼容性探针。
 
-# 使用说明：
+当前 `main` 同时保留两类构建路径：
 
-- 将插件本体解压到游戏安装目录内即可 (`version.dll` 和 `imasscprism.exe` 在同一级目录)
-- 启动游戏后看见控制台（需打开`enableConsole` ）即安装成功
+- **标准/兼容构建**：`generate.bat` + `build/ImasSCSP-localify.sln`，输出可直接作为代理 DLL 使用的 `version.dll`；GitHub Actions 也使用这条路径打包公开 artifact。
+- **SCSP 2.17 维护构建**：
+  - `build-full-2.17.bat`：完整插件，输出 `scsp_localify_plugin.dll`；
+  - `build-lite.bat`：仅本地化功能的较小插件，输出 `scsp_localify_plugin.dll`；
+  - `build-probe.bat`：2.17 方法/ICall 兼容性探针。
 
+`scsp_localify_plugin.dll` 是插件形式的开发/集成目标，需要兼容的加载方式；**不要简单把它重命名成 `version.dll`**。普通用户优先使用标准构建或项目公开发布/Actions artifact。
 
+翻译数据来自公开仓库 [kohakunamori/SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData)，并通过 `resources/schinese` submodule 固定版本。
 
-# 功能列表
+本公开仓库只维护插件源码、公开资源和构建资料。不要提交账号信息、启动参数、Token、日志、抓包、游戏文件、个人本地路径或私人项目资料。
 
-- dump 文本
-- 汉化、替换字体
-- 解锁帧数
-- 切换窗口不暂停
-- Free Camera 自由视角
-- Live MV 相关 **(在 GUI 中修改)**
-  - 自由选择服装，可以穿别人的衣服
-  - 允许相同偶像登场
-  - 手动编辑登场偶像，可以选择未解锁偶像
-- 角色身体参数实时修改，可修改 身高、头部、胸部、手臂、手掌 大小 **(在 GUI 中修改)**
-- 运行时模型贴图提取和替换
-- 身体姿势数据复制
+## 功能概览
 
+### 本地化
 
+- Localify 主文本替换；
+- `local2.json` UI/运行时字符串替换；
+- 歌词替换；
+- scenario/剧情 JSON 替换；
+- 自定义字体与字体大小调整；
+- 未翻译文本、歌词和 JSON Dump。
 
-# 配置说明
+### 显示与性能
 
-- 配置项位于 `scsp-config.json` 文件中
+- 帧率上限；
+- VSync / `vSyncCount`；
+- 启动分辨率；
+- 3D Render Scale；
+- 窗口失焦不暂停；
+- GUI 内实时调整部分性能选项。
 
-| 配置项                     | 类型                                     | 默认值                                 | 说明                                                 |
-| -------------------------- | ---------------------------------------- | -------------------------------------- | ---------------------------------------------------- |
-| enableConsole              | Bool                                     | `true`                                 | 是否开启控制台                                       |
-| showStartCommand           | Bool                                     | `false`                                | 是否显示游戏启动参数<br>*注意：启动参数中包含个人信息token* |
-| enableVSync                | Bool                                     | `false`                                | 是否启用垂直同步                                     |
-| maxFps                     | Int                                      | `60`                                   | 最大帧数<br>当启用 `enableVSync` 时，此项配置失效    |
-| 3DResolutionScale          | Float                                    | `1.0`                                  | 3D 渲染分辨率倍率                                    |
-| localifyBasePath           | String                                   | `scsp_localify`                        | 本地化文件目录                                       |
-| hotKey                     | String (Char)                            | `u`                                    | 按下 `Ctrl` + 此项配置的热键，**打开插件 GUI**       |
-| dumpUntransLyrics          | Bool                                     | `false`                                | dump 未翻译的歌词                                    |
-| dumpUntransLocal2          | Bool                                     | `false`                                | dump 未翻译的文本                                    |
-| autoDumpAllJson            | Bool                                     | `false`                                | dump 所有游戏加载的 JSON                             |
-| ~~extraAssetBundlePaths~~  | ~~String[]~~                             | ~~`["scsp_localify/scsp-bundle"]`~~    | ~~自定义数据包路径~~<br> **此设置已过时** <br>使用 `asset_bundle_path::asset_path` 格式对具体要使用的资源进行指定。      |
-| customFontPath             | String                                   | `scsp_localify/scsp-bundle::assets/font/sbtphumminge-regular.ttf` | 自定义数据包中字体路径<br>用于替换游戏内置字体       |
-| blockOutOfFocus            | Bool                                     | `true`                                 | 拦截窗口失焦事件<br>切换到其它窗口后不会触发游戏暂停 |
-| baseFreeCamera             | [BaseFreeCamera](#BaseFreeCamera) Object | [BaseFreeCamera](#BaseFreeCamera)      | 自由视角配置                                         |
-| unlockPIdolAndSCharaEvents | Bool                                     | `false`                                | 解锁 `角色` - `一览` 中的P卡和S卡事件                |
-| startResolution            | [Resolution](#Resolution) Object         | [Resolution](#Resolution)              | 启动游戏初始分辨率                                   |
+SCSP 2.17 的 3D Render Scale 已迁移到当前实际使用的 URP `UniversalRenderPipelineAsset.renderScale` 路径；FPS/VSync 使用 Unity `Application.targetFrameRate` / `QualitySettings.vSyncCount` 的显式 setter/getter 路径。
 
+### Live / MV
 
+- Free Camera / FOV；
+- 允许相同偶像多位置登场；
+- MV 编队/偶像覆盖；
+- 服装记录、替换与部分服装扩展功能；
+- 强制服装/角色相关实验选项；
+- 强制 separated vocal（仅适用于兼容歌曲/组合）。
 
-### BaseFreeCamera
+### 角色与资源工具
 
-| 配置项     | 类型  | 默认值  | 说明               |
-| ---------- | ----- | ------- | ------------------ |
-| enable     | Bool  | `false` | 启用自由视角       |
-| moveStep   | Float | `50`    | 摄像机移动速度     |
-| mouseSpeed | Float | `35`    | 鼠标移动视角灵敏度 |
+- 角色身体参数实时编辑；
+- MagicaCloth 参数调整；
+- 运行时纹理提取/替换；
+- 姿势数据复制/应用；
+- 部分故事/服装解锁功能。
 
+部分高级功能高度依赖当前客户端内部实现。README 中列出功能不代表所有组合都适用于所有游戏版本；2.17 的当前验证边界见 [docs/full-functionality-2.17.md](docs/full-functionality-2.17.md)。
 
+## 快速使用
 
-### Resolution
+### 方法一：使用 GitHub Actions 构建产物
 
-| 配置项 | 类型 | 默认值  | 说明     |
-| ------ | ---- | ------- | -------- |
-| w      | Int  | `1280`  | 窗口宽度 |
-| h      | Int  | `720`   | 窗口高度 |
-| isFull | Bool | `false` | 是否全屏 |
+项目 CI 会生成 `scsp-localify` artifact，内容包括：
 
+```text
+version.dll
+scsp-config.json
+scsp_localify/
+```
 
+将这些文件放入游戏安装目录，使 `version.dll` 与 `imasscprism.exe` 位于同一级目录。
 
-# 自由视角说明 (Free Camera)
+首次运行前建议先备份已有 `version.dll` / 配置文件。
 
-- 将 `scsp-config.json` 中 `baseFreeCamera` - `enable` 设置为 `true` 即可。
-- 生效范围：所有 3D 场景。包括但不限于主页、故事、Live
-> 由于游戏v2.6.1的引擎升级，自由视角目前仍存在尚未完全修复的BUG
+启动游戏后，如果 `enableConsole=true` 且控制台正常出现，说明插件已加载。
 
+> `showStartCommand` 会输出游戏启动参数，而启动参数可能包含敏感 Token。除非正在本机调试，否则不要开启，也不要把相关日志上传到 Issue/PR。
 
+### 方法二：自行构建标准 version.dll
 
-## 自由视角操作方法
+要求：
 
-> 下述为默认按键，具体按键可以通过配置文件进行自定义
+- Windows x64；
+- Visual Studio 2022 / MSBuild；
+- Python；
+- Conan 2；
+- CMake；
+- Git。
 
-- 移动: `W`, `S`, `A`, `D`
-- 上移: `Space` （插件v1.3.6开始分发的配置文件中重载为 `Alt`），下移: `Ctrl`
-- 摄像头复位: `R`
+克隆：
 
-- 视角转动: 
-  - 键盘: `↑`, `↓`, `←`, `→`
-  - 鼠标: 
-    - 按 ` 键（数字键最左边，TAB 键上方）切换
-    - 或者**按住**鼠标右键
-- 调整视场角 (FOV)
-  - 键盘: `Q`, `E`
-  - 或者鼠标滚轮
+```bash
+git clone --recursive https://github.com/kohakunamori/scsp-localify.git
+cd scsp-localify
+```
 
+如果已经克隆：
 
- ### 自由视角按键设置
+```bash
+git submodule update --init --recursive
+```
 
-- 所有配置项同样位于 `scsp-config.json` 文件中
-- 由于游戏v2.9.0更新了键盘操作，该插件既往默认的自由视角上移按键 `Space` 从插件v1.3.6开始分发的配置文件中修改为 `Alt`，但若配置文件没有修改，默认仍保持 `Space` 不变
+生成依赖和工程：
 
-| 配置项                       | 默认值                     |
-| --------------------------- | ------------------------- |
-| key_w_camera_forward        | `W`                       |
-| key_s_camera_back           | `S`                       |
-| key_a_camera_left           | `A`                       |
-| key_d_camera_right          | `D`                       |
-| key_ctrl_camera_down        | `17` (ctrl)               |
-| key_space_camera_up         | `18` (alt)                |
-| key_up_cameralookat_up      | `38` (↑)                  |
-| key_down_cameralookat_down  | `40` (↓)                  |
-| key_left_cameralookat_left  | `37` (←)                  |
-| key_right_cameralookat_right| `39` (→)                  |
-| key_q_camera_fov_increase   | `Q`                       |
-| key_e_camera_fov_decrease   | `E`                       |
-| key_r_camera_reset          | `R`                       |
-| key_192_camera_mouseMove    | `192` (`` ` ``, backtick) |
+```bat
+generate.bat
+```
 
+然后用 Visual Studio 2022 打开：
 
-JSON值说明：对于按键设置接受以下两种类型的值：
-- `char[1]` 单字节字符串，即用双引号包绕的单个字母或数字，表示相应的按键，如 `"W"` 表示W键
-- `int` 整数数值，直接绑定到相应的 windows virtual key，可参考 https://learn.microsoft.com/zh-cn/windows/win32/inputdev/virtual-key-codes
+```text
+build/ImasSCSP-localify.sln
+```
 
+编译 `Release | x64`。输出位于：
 
- # Live MV 功能说明
+```text
+build/bin/x64/Release/version.dll
+```
 
-- 在开启 `Save & Replace costume changes` 选项后打开后可以记录所有服装变化，打开游戏内的试用按钮后也可以记录未解锁的服装，或在DressOrder界面中选择私服，并在MV播放时自动应用所记录的服装信息；在子窗口 "Saved Costume Data" 中可以通过 `Remove` 按钮移除不需要的记录以取消
-- 在开启 `Save & Replace costume changes` 后再开启 `Override MV unit idols` 选项，在 "Override MvUnit Idols" 子窗口中通过 `Slot X` 按钮进行保存上一次修改时的服装信息，不同槽位可以记录同一个偶像以实现相同偶像登场并使用不同服装，无记录的位置将继承当前编队中的原始信息
-- "Override MvUnit Idols" 子窗口中可以通过点击数据直接编辑JSON数据进行手动修改（备注：当直接编辑`CharaId`时，建议使用`1`（默认）作为`HairId`的值以避免游戏卡住）
+### 方法三：构建 SCSP 2.17 维护目标
 
+完整插件：
 
-# Magica Cloth 相关设置
+```bat
+build-full-2.17.bat
+```
 
-所有相关设置均可在游戏中通过GUI进行修改，以下在 `scsp-config.json` 配置文件中的值只影响初始化。
+输出：
 
-具体属性说明可参考官方文档：https://magicasoft.jp/mc2_about/
+```text
+build-full-2.17/bin/x64/Release/scsp_localify_plugin.dll
+```
 
-| 配置项                               | 默认值及说明                   |
-| ----------------------------------- | ---------------------------- |
-| magicacloth_override                | `false`                      |
-| magicacloth_inertia_min †           | `1.0f`                       |
-| magicacloth_inertia_max †           | `1.0f`                       |
-| magicacloth_radius_min †            | `0.002f`                     |
-| magicacloth_radius_max †            | `0.028f`                     |
-| magicacloth_damping                 | `0.01f`                      |
-| magicacloth_movementSpeedLimit      | `10.0f`                      |
-| magicacloth_rotationSpeedLimit      | `1440.0f`                    |
-| magicacloth_localMovementSpeedLimit | `10.0f`                      |
-| magicacloth_localRotationSpeedLimit | `1440.0f`                    |
-| magicacloth_particleSpeedLimit      | `40.0f`                      |
-| magicacloth_limitAngle              | `90.0f`                      |
-| magicacloth_springLimitDistance     | `0.5f`                       |
-| magicacloth_springNoise             | `0.1f`                       |
+本地化专用插件：
 
-† 此处`Inertia`和`Radius`属性来自`MagicaClothController`
+```bat
+build-lite.bat
+```
 
+输出：
 
-# 如何汉化
+```text
+build-lite/bin/x64/Release/scsp_localify_plugin.dll
+```
 
-- 将 dumps 目录内的 Json 文件汉化后，放进 `scsp_localify` 目录即可。
-- 汉化仓库：[SCSPTranslationData](https://github.com/ShinyGroup/SCSPTranslationData) 欢迎各位贡献自己的翻译~
+兼容性探针：
 
+```bat
+build-probe.bat
+```
 
+这些 2.17 目标主要用于当前兼容性开发、验证和集成，不等同于标准 `version.dll` 安装包。
 
-## 自行 dump 原文
-- 游戏内的 UI 文本大致可以分为三类。
+## 翻译数据
 
-  - 1、通过游戏内的 `Localify` 接口加载
+默认翻译路径由：
 
-  - 2、不通过 `Localify`接口加载
+```json
+"localifyBasePath": "scsp_localify"
+```
 
-  - 3、直接通过 Json 加载（这部分不止文本，还有其它诸如镜头数据、人物动作等，插件也支持替换。）
+控制。
 
-  
+完整克隆本仓库后，翻译数据位于：
 
-- 第一类对应 `localify.json`
+```text
+resources/schinese/scsp_localify/
+```
 
-- 第二类对应 `local2.json` 和 ` lyrics.json`
+主要包括：
 
-- 除此之外的文件都对应第三类
+- `localify.json`
+- `local2.json`
+- `lyrics.json`
+- `scenario/`
+- 本地化资源包
 
-- （UI 文本一部分走 `Localify`，一部分不走，很奇怪。）
+如果 submodule 为空，请执行：
 
+```bash
+git submodule update --init --recursive
+```
 
+翻译仓库的详细使用与贡献说明见 [kohakunamori/SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData)。
 
-### 故事和部分 UI 文本 dump
-登录游戏后，进入故事阅读界面，按下 `ctrl` + `u`，会弹出控制窗口，勾选 `Waiting Extract Text`，然后点击任意故事标题，之后会自动 dump 故事文本和 `localify.json`
+## 配置
 
+配置文件：`scsp-config.json`。
 
+下面列出常用配置。部分高级选项也可以在插件 GUI 中实时修改。
 
-### 歌词和另一部分 UI 文本 dump
-将 `scsp-config.json` 内 `dumpUntransLyrics` 和 `dumpUntransLocal2` 设置为 `true`，然后打开游戏。插件会实时将未翻译的部分 dump 到 Json 中。
+| 配置项 | 类型 | 默认/常用值 | 说明 |
+| --- | --- | --- | --- |
+| `enableConsole` | Bool | `true` | 显示插件控制台 |
+| `showStartCommand` | Bool | `false` | 输出启动参数；**可能泄露 Token，不建议开启** |
+| `localifyBasePath` | String | `scsp_localify` | 本地化数据目录 |
+| `hotKey` | Char | `u` | `Ctrl + hotKey` 打开 GUI |
+| `fontSizeOffset` | Int | `-3` | 字体大小偏移 |
+| `customFontPath` | String | 见默认配置 | 自定义字体资源 |
+| `dumpUntransLyrics` | Bool | `false` | Dump 未翻译歌词 |
+| `dumpUntransLocal2` | Bool | `false` | Dump 未翻译 local2 文本 |
+| `autoDumpAllJson` | Bool | `false` | Dump 游戏加载的 JSON |
+| `blockOutOfFocus` | Bool | `true` | 阻止窗口失焦触发暂停 |
+| `maxFps` | Int | `60` | 覆盖 Unity `targetFrameRate`；GUI 可实时修改 |
+| `vSyncCount` | Int | 未设置 | 显式 VSync 覆盖；支持 Game/0/1/2 等语义 |
+| `enableVSync` | Bool | `false` | 旧配置兼容；`true` 等价于请求 `vSyncCount=1` |
+| `3DResolutionScale` | Float | `1.0` | 3D 渲染倍率；2.17 使用 URP renderScale |
+| `startResolution` | Object | `1280x720` | 启动窗口宽高/全屏设置 |
+| `baseFreeCamera.enable` | Bool | `false` | Free Camera |
+| `baseFreeCamera.moveStep` | Float | `50` | Free Camera 移动速度 |
+| `baseFreeCamera.mouseSpeed` | Float | `35` | 鼠标视角速度 |
+| `allowSameIdol` | Bool | `false` | 允许相同偶像重复登场 |
+| `saveAndReplaceCostumeChanges` | Bool | `false` | 保存/替换服装变化 |
+| `unlockAllDress` | Bool | `false` | 服装解锁；属于高版本敏感功能 |
+| `unlockPIdolAndSCharaEvents` | Bool | `false` | 故事/事件解锁相关功能 |
+| `magicacloth_override` | Bool | `false` | 启用 MagicaCloth 参数覆盖 |
+| `diagnosticFileTrace` | Bool | `false` | 开发诊断日志，不建议日常启用 |
 
+`extraAssetBundlePaths` 等旧配置仍可能为了历史兼容被解析，但已经不是推荐配置入口。
 
-# 运行时模型贴图提取和替换
+## GUI
 
-- 提取：在GUI中勾选 `Extract assets of：` 以及相应的筛选器后，会在程序目录的 `TextureDump` 文件夹下分类存放提取的纹理。
-- 替换：在程序的 `scsp_localify\textures` 文件夹内放置与提取得到的纹理相同名称的图片会自动在启动时加载并替换。
+默认按：
 
+```text
+Ctrl + U
+```
 
-# 身体姿势数据复制
-一个简单的使用介绍：https://github.com/chinosk6/scsp-localify/discussions/101
+打开插件 GUI（取决于 `hotKey` 配置）。
 
+GUI 包含或可访问：
 
-# 如何编译
-- 安装 `conan 2`、`cmake`
-- 运行 `generate.bat` 获取依赖包
-- 通过 `build/ImasSCSP-localify.sln` 使用 `Visual Studio 2022` 进行编译
+- 性能/FPS/VSync/3D Render Scale；
+- Free Camera；
+- Live/MV 编队与服装相关功能；
+- 角色参数；
+- MagicaCloth；
+- 资源提取/替换；
+- 姿势工具；
+- 诊断/开发选项。
 
-## 预处理器命令 `__SAFETYHOOK`
+涉及实时 Unity 对象的功能应在游戏进入对应场景后再使用。
 
-### 什么是`safetyhook`以及为什么要使用
-`safetyhook`相比默认的`minhook`在插入hook时有更高的成功率。
+## Free Camera
 
-如果插件因为`MH_ERROR_MEMORY_ALLOC`而无法成功插入hook，就可以尝试`safetyhook`。
+配置：
 
-## 如何编译并使用`safetyhook`
-- 在 `deps/safetyhook` 路径下运行 `cmake . -B build -G "Visual Studio 17 2022"` 初始化safetyhook工程（需要手动创建`build`文件夹）
-- 在Release模式下编译 `deps/safetyhook/build/safetyhook.sln`
-- 在当前工程中添加引用
-    - C/C++ - General | Additional Include Directories: `..\deps\safetyhook\include`
-    - Linker - General | Additional Library Directories: `..\deps\safetyhook\build\Release`, `..\deps\safetyhook\build\_deps\zydis-build\Release`
-    - Linker - Input | Additional Dependencies: `Zydis.lib`, `safetyhook.lib`
-- 在 C/C++ - Preprocessor | Preprocessor Definitions 下添加: `__SAFETYHOOK`
+```json
+{
+  "baseFreeCamera": {
+    "enable": true,
+    "moveStep": 50,
+    "mouseSpeed": 35
+  }
+}
+```
+
+默认操作：
+
+| 操作 | 按键 |
+| --- | --- |
+| 前/后/左/右 | `W / S / A / D` |
+| 上移 | `Alt`（旧配置可能仍为 `Space`） |
+| 下移 | `Ctrl` |
+| 复位 | `R` |
+| 键盘转视角 | 方向键 |
+| 鼠标转视角 | 右键按住，或切换鼠标模式 |
+| FOV | `Q / E` 或鼠标滚轮 |
+
+游戏版本更新可能改变 Camera/Transform 内部路径，因此 Free Camera 属于需要实际场景验证的功能。
+
+## Live / MV 使用提示
+
+### 相同偶像
+
+启用：
+
+```json
+"allowSameIdol": true
+```
+
+当前 2.17 已针对常规 Live 与 MV 的重复偶像 consumer 做过迁移。重复偶像搭配不同服装时，插件使用按槽位的数据避免简单按角色 ID 覆盖全部位置。
+
+### MV Unit Override
+
+GUI 中可以保存/编辑各 Slot 的偶像与服装数据。
+
+对于 5 人 MV，实际消费的是 Slot 0–4；更多槽位不会因为存在配置就自动被 5 人 MV 使用。
+
+直接手改 JSON 时，请先备份数据并保持字段结构正确。
+
+### Forced Separated Vocal
+
+只建议在确认歌曲/组合支持时开启。对不兼容资源强制开启可能导致异常或卡住。
+
+## 文本 Dump 与翻译
+
+### localify.json
+
+主 Localify 文本表。
+
+### local2.json
+
+不经过主 Localify 表的 UI/运行时文本。
+
+### lyrics.json
+
+歌词字符串映射。
+
+### scenario
+
+剧情/场景 JSON。
+
+Dump 新原文后，请优先向 [SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData) 提交数据/翻译，而不是把个人 Dump、日志或账号相关文件提交到本插件仓库。
+
+## 纹理提取和替换
+
+提取功能会把符合筛选条件的纹理写入插件指定的 Dump 目录。
+
+替换时，把与目标纹理名称匹配的文件放入：
+
+```text
+scsp_localify/textures/
+```
+
+资源提取可能产生大量文件，请不要把个人 Dump 结果直接提交到 Git。
+
+## MagicaCloth
+
+MagicaCloth 参数可通过 GUI 调整；配置文件中的 `magicacloth_* ` 值主要用于初始化。
+
+属性含义可参考 Magica Cloth 官方资料。使用极端参数可能造成物理模拟异常，建议一次只修改少量参数并保留可恢复配置。
+
+## 2.17 兼容性说明
+
+当前仓库维护了一套公开的 2.17 静态/构建验证资料：
+
+- [完整功能矩阵](docs/full-functionality-2.17.md)
+- [手工交互检查表](docs/manual-acceptance-2.17.md)
+
+目前已经有较强验证的 2.17 路径包括本地化基础链路、FPS/VSync、启动分辨率、URP 3D Render Scale、失焦控制，以及部分 Live/MV/Free Camera/重复偶像路径。
+
+服装、故事解锁、角色参数、MagicaCloth、资源提取/姿势等高交互功能仍应按具体游戏版本和场景验证。不要仅因为代码能编译或 Hook 地址能解析，就假定所有功能在未来版本仍然可用。
+
+## 开发
+
+### 标准构建
+
+```bat
+generate.bat
+```
+
+再编译 `build/ImasSCSP-localify.sln`。
+
+### 2.17 静态审计
+
+```bash
+python tools/audit_full_functionality.py
+```
+
+### 2.17 完整构建
+
+```bat
+build-full-2.17.bat
+```
+
+### 非游戏进程加载 Smoke Test
+
+仓库包含：
+
+```text
+tools/smoke-full-plugin-non-game.ps1
+```
+
+用于验证 DLL 在非目标进程中加载/卸载时不会启动游戏 Hook 初始化。
+
+## 安全与隐私
+
+公开 Issue/PR/日志中请务必移除：
+
+- DMM/游戏账号信息；
+- Token、Cookie、启动参数；
+- 本地用户名和绝对路径；
+- TLS 私钥/证书；
+- 抓包中的认证信息；
+- 官方游戏资源或完整客户端文件。
+
+`showStartCommand` 尤其容易把敏感启动参数输出到日志，默认保持关闭。
+
+## 上游
+
+本项目基于 [chinosk6/scsp-localify](https://github.com/chinosk6/scsp-localify) 持续维护。
+
+翻译数据：
+
+- [kohakunamori/SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData)
+- 上游社区数据：[ShinyGroup/SCSPTranslationData](https://github.com/ShinyGroup/SCSPTranslationData)
+
+## License
+
+详见 [LICENSE](LICENSE)。

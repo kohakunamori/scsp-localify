@@ -141,10 +141,11 @@ def main() -> int:
     readme_functions = []
     in_functions = False
     for line in readme.splitlines():
-        if line.strip() == "# Function List":
+        heading = line.strip()
+        if heading in {"# Function List", "## Features"}:
             in_functions = True
             continue
-        if in_functions and line.startswith("# "):
+        if in_functions and heading.startswith("## ") and heading != "## Features":
             break
         if in_functions and line.strip().startswith("- "):
             readme_functions.append(line.strip()[2:])

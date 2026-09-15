@@ -1,6 +1,6 @@
 {
   "summary": {
-    "readme_function_count": 12,
+    "readme_function_count": 22,
     "global_flag_count": 59,
     "config_key_count": 41,
     "gui_control_count": 113,
@@ -18,18 +18,28 @@
     "networking_compiled_by_default": false
   },
   "readme_functions": [
-    "Dump Text",
-    "Localization, Font Replacement",
-    "Unlock Frame Rate",
-    "Switching Windows Without Pausing",
-    "Free Camera",
-    "Live MV Related **(Modify in GUI)**",
-    "Freedom to Choose Costumes, Wear Other Characters' Clothes",
-    "Allow Same Idol Appearance",
-    "Edit on-stage idols manually, allowing to select unlocked idols",
-    "Real-time Modification of Character Body Parameters, Adjust Height, Head, Chest, Arm, and Palm Size **(Modify in GUI)**",
-    "Runtime texture extracting and replacing",
-    "Copying body pose data"
+    "primary Localify text replacement;",
+    "`local2.json` runtime/UI string replacement;",
+    "lyrics replacement;",
+    "scenario JSON replacement;",
+    "custom font and font-size adjustment;",
+    "untranslated text/lyrics/JSON dumping.",
+    "frame-rate override;",
+    "VSync / `vSyncCount`;",
+    "startup resolution;",
+    "3D render scale;",
+    "block pause-on-focus-loss;",
+    "live GUI controls for several performance options.",
+    "Free Camera / FOV;",
+    "same-idol multi-position support;",
+    "MV unit/idol overrides;",
+    "costume save/replace and related costume options;",
+    "separated-vocal override for compatible songs/units.",
+    "live character body-parameter editing;",
+    "MagicaCloth tuning;",
+    "runtime texture extraction/replacement;",
+    "pose copy/apply tools;",
+    "selected story/costume unlock functions."
   ],
   "globals": [
     {
