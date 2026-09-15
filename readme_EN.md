@@ -196,6 +196,8 @@ git submodule update --init --recursive
 
 See [kohakunamori/SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData) for translation usage and contribution instructions.
 
+Translation contributors and translation agents should follow the public [AGENTS.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/AGENTS.md) and [CONTRIBUTING.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/CONTRIBUTING.md). The translation repository now provides public terminology/name data, translation-memory generation, repository QA, agent batch/result schemas, and CI without depending on private environments.
+
 ## Configuration
 
 Configuration file: `scsp-config.json`.
