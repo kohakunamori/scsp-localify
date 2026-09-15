@@ -360,6 +360,8 @@ void reload_all_data() {
 		printf("%s", log.c_str());
 	}
 	reloadTransData();
+	request_apply_performance_settings();
+	request_apply_3d_resolution_scale();
 }
 
 extern std::function<void()> g_on_hook_ready;

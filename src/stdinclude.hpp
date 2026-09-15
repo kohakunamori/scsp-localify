@@ -461,6 +461,19 @@ extern bool g_override_isVocalSeparatedOn;
 extern bool g_enable_chara_param_edit;
 extern float g_font_size_offset;
 extern float g_3d_resolution_scale;
+
+// Runtime display/performance control. These are backed by the current SCSP 2.17
+// URP owner and Unity frame pacing icalls, and are safe to call from the GUI
+// through the main-thread request helpers.
+void request_apply_3d_resolution_scale();
+void request_apply_performance_settings();
+float runtime_3d_render_scale();
+float game_base_3d_render_scale();
+int runtime_target_fps();
+int runtime_vsync_count();
+int game_requested_target_fps();
+int game_requested_vsync_count();
+
 extern bool g_unlock_PIdol_and_SChara_events;
 extern int g_start_resolution_w;
 extern int g_start_resolution_h;

@@ -1,6 +1,6 @@
 # SCSP Localify 2.17 manual acceptance
 
-Reviewed: 2026-09-14.
+Reviewed: 2026-09-15.
 
 Only rendered/interactive behavior is delegated to manual acceptance. Static target resolution, build reproducibility, package integrity, startup/hook installation, trace attribution and persistent cleanup remain automated engineering gates.
 
@@ -19,7 +19,7 @@ Replace `C` with `A` through `G`. The wrapper builds a group-specific full-plugi
 Profiles only preconfigure existing supported JSON controls; they do not invent new plugin configuration semantics:
 
 - A/F: normal SafeSmoke ownership with diagnostic tracing; interaction remains entirely in the game/GUI.
-- B: additionally sets `3DResolutionScale=0.75` and `blockOutOfFocus=true`. B is optional because these paths already have automated runtime PASS.
+- B: additionally sets `3DResolutionScale=0.75` and `blockOutOfFocus=true`. B is optional because these paths have automated runtime coverage. On current 2.17, 3D scale is owned by URP `UniversalRenderPipelineAsset.renderScale`; FPS/VSync and 3D scale also expose live GUI controls/readback. Their explanations are bilingual `(?)` hover tooltips rather than permanent inline text.
 - C: enables base free camera, `allowSameIdol=true`, and the costume-save baseline. B6 owns the remigrated regular-Live/MV duplicate-idol consumers and the accepted duplicate-idol per-slot costume isolation fix; MV-unit override and forced separated vocal remain explicit GUI toggles because their payload/song compatibility is interaction-specific.
 - D: uses `FullDressOnly`, enabling only the maintained SCSP 2.17 full-plugin dress-unlock owner plus the costume-save baseline. Story unlock remains disabled; hidden-costume and auto-apply remain explicit GUI toggles.
 - E: enables `magicacloth_override`; character-parameter editor remains an explicit GUI toggle.
@@ -30,7 +30,7 @@ After each group, report only PASS/FAIL and the failing subfeature. Engineering 
 ## Minimal grouped checks
 
 - A — localization/story: readable Simplified Chinese with no tofu; open a translated story (preferred `s61_10211001_00`) and confirm translated dialogue renders and advances.
-- B — display/focus: **optional visual sanity only**. FPS/VSync, configured start resolution, 3D render scale, and focus-loss enabled/disabled behavior are already automated runtime PASS; report B only if you notice a visual/UX defect.
+- B — display/focus: **optional visual sanity only**. FPS/VSync has setter/getter plus measured frame-progression validation; configured start resolution is runtime-proven; 3D scale is migrated to/read back from the SCSP 2.17 URP owner; focus-loss behavior is runtime-proven. In the GUI, hover the `(?)` beside Frame Rate Limit, VSync and 3D Render Scale for Chinese+English explanations. Report B only for a visible/UX defect or if runtime readback disagrees with the requested setting.
 - C — Live/MV: **PASS on accepted B6 (user manual acceptance, 2026-09-14)**. Verified same-idol multi-position selection, five-same-idol/five-distinct-costume isolation, explicit Override-MV Slot 0–4 replay, free-camera movement/FOV/clip behavior, and forced separated vocal on a known-supported song/unit. For a 5-person MV, Slot 5–7 remain intentionally inactive.
 - D — costume: hidden costumes, unlock-all-dress, auto-apply, and saved costume replacement into MV. Use the full-owner profile only.
 - E — character/cloth: one obvious character body parameter apply/reset and one sane MagicaCloth override/reset.

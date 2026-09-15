@@ -3,12 +3,12 @@
     "readme_function_count": 12,
     "global_flag_count": 59,
     "config_key_count": 41,
-    "gui_control_count": 97,
-    "active_main_hook_count": 57,
+    "gui_control_count": 113,
+    "active_main_hook_count": 58,
     "disabled_main_hook_count": 19,
-    "probe_method_spec_count": 61,
-    "probe_icall_count": 3,
-    "active_hook_probe_covered": 56,
+    "probe_method_spec_count": 64,
+    "probe_icall_count": 5,
+    "active_hook_probe_covered": 57,
     "active_hook_probe_open": 1,
     "open_hook_names": [
       "Subject_OnNext"
@@ -460,437 +460,533 @@
     {
       "line": 489,
       "kind": "CollapsingHeader",
+      "label": "Performance Settings",
+      "code": "if (ImGui::CollapsingHeader(\"Performance Settings\", ImGuiTreeNodeFlags_DefaultOpen)) {"
+    },
+    {
+      "line": 493,
+      "kind": "Button",
+      "label": "Game##fps",
+      "code": "if (ImGui::Button(\"Game##fps\")) {"
+    },
+    {
+      "line": 498,
+      "kind": "Button",
+      "label": "30##fps",
+      "code": "if (ImGui::Button(\"30##fps\")) {"
+    },
+    {
+      "line": 503,
+      "kind": "Button",
+      "label": "60##fps",
+      "code": "if (ImGui::Button(\"60##fps\")) {"
+    },
+    {
+      "line": 508,
+      "kind": "Button",
+      "label": "120##fps",
+      "code": "if (ImGui::Button(\"120##fps\")) {"
+    },
+    {
+      "line": 513,
+      "kind": "Button",
+      "label": "144##fps",
+      "code": "if (ImGui::Button(\"144##fps\")) {"
+    },
+    {
+      "line": 518,
+      "kind": "Button",
+      "label": "240##fps",
+      "code": "if (ImGui::Button(\"240##fps\")) {"
+    },
+    {
+      "line": 527,
+      "kind": "Button",
+      "label": "Apply FPS/VSync",
+      "code": "if (ImGui::Button(\"Apply FPS/VSync\")) {"
+    },
+    {
+      "line": 534,
+      "kind": "Button",
+      "label": "Game##vsync",
+      "code": "if (ImGui::Button(\"Game##vsync\")) {"
+    },
+    {
+      "line": 539,
+      "kind": "Button",
+      "label": "Off##vsync",
+      "code": "if (ImGui::Button(\"Off##vsync\")) {"
+    },
+    {
+      "line": 544,
+      "kind": "Button",
+      "label": "1##vsync",
+      "code": "if (ImGui::Button(\"1##vsync\")) {"
+    },
+    {
+      "line": 549,
+      "kind": "Button",
+      "label": "2##vsync",
+      "code": "if (ImGui::Button(\"2##vsync\")) {"
+    },
+    {
+      "line": 560,
+      "kind": "CollapsingHeader",
       "label": "Resolution Settings",
       "code": "if (ImGui::CollapsingHeader(\"Resolution Settings\", ImGuiTreeNodeFlags_DefaultOpen)) {"
     },
     {
-      "line": 492,
+      "line": 563,
       "kind": "Button",
       "label": "720P",
       "code": "if (ImGui::Button(\"720P\")) {"
     },
     {
-      "line": 497,
+      "line": 568,
       "kind": "Button",
       "label": "1080P",
       "code": "if (ImGui::Button(\"1080P\")) {"
     },
     {
-      "line": 502,
+      "line": 573,
       "kind": "Button",
       "label": "1440P",
       "code": "if (ImGui::Button(\"1440P\")) {"
     },
     {
-      "line": 507,
+      "line": 578,
       "kind": "Button",
       "label": "1620P",
       "code": "if (ImGui::Button(\"1620P\")) {"
     },
     {
-      "line": 512,
+      "line": 583,
       "kind": "Button",
       "label": "2160P",
       "code": "if (ImGui::Button(\"2160P\")) {"
     },
     {
-      "line": 519,
+      "line": 590,
       "kind": "Checkbox",
       "label": "Full Screen",
       "code": "ImGui::Checkbox(\"Full Screen\", &SCGUIData::screenFull);"
     },
     {
-      "line": 520,
+      "line": 591,
       "kind": "Button",
       "label": "Update Resolution",
       "code": "if (ImGui::Button(\"Update Resolution\")) {"
     },
     {
-      "line": 526,
+      "line": 597,
       "kind": "Button",
       "label": "Swap",
       "code": "if (ImGui::Button(\"Swap\")) {"
     },
     {
-      "line": 545,
+      "line": 613,
+      "kind": "Button",
+      "label": "Apply 3D Scale",
+      "code": "if (ImGui::Button(\"Apply 3D Scale\")) {"
+    },
+    {
+      "line": 617,
+      "kind": "Button",
+      "label": "1.0x##3dscale",
+      "code": "if (ImGui::Button(\"1.0x##3dscale\")) {"
+    },
+    {
+      "line": 622,
+      "kind": "Button",
+      "label": "1.5x##3dscale",
+      "code": "if (ImGui::Button(\"1.5x##3dscale\")) {"
+    },
+    {
+      "line": 627,
+      "kind": "Button",
+      "label": "2.0x##3dscale",
+      "code": "if (ImGui::Button(\"2.0x##3dscale\")) {"
+    },
+    {
+      "line": 636,
       "kind": "CollapsingHeader",
       "label": "Camera Info",
       "code": "if (ImGui::CollapsingHeader(\"Camera Info\", ImGuiTreeNodeFlags_DefaultOpen)) {"
     },
     {
-      "line": 546,
+      "line": 637,
       "kind": "InputFloat",
       "label": "Game Camera FOV",
       "code": "ImGui::InputFloat(\"Game Camera FOV\", &SCGUIData::sysCamFov);"
     },
     {
-      "line": 547,
+      "line": 638,
       "kind": "InputFloat3",
       "label": "Game Camera Pos (x, y, z)",
       "code": "ImGui::InputFloat3(\"Game Camera Pos (x, y, z)\", &SCGUIData::sysCamPos.x);"
     },
     {
-      "line": 548,
+      "line": 639,
       "kind": "InputFloat3",
       "label": "Game Camera LookAt (x, y, z)",
       "code": "ImGui::InputFloat3(\"Game Camera LookAt (x, y, z)\", &SCGUIData::sysCamLookAt.x);"
     },
     {
-      "line": 549,
+      "line": 640,
       "kind": "InputFloat4",
       "label": "Game Camera Rotation (w, x, y, z)",
       "code": "ImGui::InputFloat4(\"Game Camera Rotation (w, x, y, z)\", &SCGUIData::sysCamRot.w);"
     },
     {
-      "line": 551,
+      "line": 642,
       "kind": "CollapsingHeader",
       "label": "Free Camera",
       "code": "if (ImGui::CollapsingHeader(\"Free Camera\", ImGuiTreeNodeFlags_DefaultOpen)) {"
     },
     {
-      "line": 552,
+      "line": 643,
       "kind": "Checkbox",
       "label": "Enable Free Camera",
       "code": "ImGui::Checkbox(\"Enable Free Camera\", &g_enable_free_camera);"
     },
     {
-      "line": 553,
+      "line": 644,
       "kind": "Checkbox",
       "label": "Enable ClipPlane overriding",
       "code": "ImGui::Checkbox(\"Enable ClipPlane overriding\", &g_reenable_clipPlane);"
     },
     {
-      "line": 557,
+      "line": 648,
       "kind": "InputFloat",
       "label": "near clip plane",
       "code": "ImGui::InputFloat(\"near clip plane\", &g_nearClipPlane);"
     },
     {
-      "line": 561,
+      "line": 652,
       "kind": "InputFloat",
       "label": "far clip plane",
       "code": "ImGui::InputFloat(\"far clip plane\", &g_farClipPlane);"
     },
     {
-      "line": 566,
+      "line": 657,
       "kind": "InputFloat3",
       "label": "Camera Pos (x, y, z)",
       "code": "ImGui::InputFloat3(\"Camera Pos (x, y, z)\", &SCCamera::baseCamera.pos.x);"
     },
     {
-      "line": 567,
+      "line": 658,
       "kind": "InputFloat3",
       "label": "Camera LookAt (x, y, z)",
       "code": "ImGui::InputFloat3(\"Camera LookAt (x, y, z)\", &SCCamera::baseCamera.lookAt.x);"
     },
     {
-      "line": 575,
+      "line": 666,
       "kind": "Button",
       "label": "Export to clipboard",
       "code": "if (ImGui::Button(\"Export to clipboard\")) {"
     },
     {
-      "line": 590,
+      "line": 681,
       "kind": "Button",
       "label": "Append from clipboard",
       "code": "if (ImGui::Button(\"Append from clipboard\")) {"
     },
     {
-      "line": 608,
+      "line": 699,
       "kind": "Button",
       "label": "Remove all saved states",
       "code": "if (ImGui::Button(\"Remove all saved states\")) {"
     },
     {
-      "line": 617,
+      "line": 708,
       "kind": "Button",
       "label": "Save",
       "code": "if (ImGui::Button(\"Save\")) {"
     },
     {
-      "line": 675,
+      "line": 766,
       "kind": "Button",
       "label": "Clear",
       "code": "if (ImGui::Button(\"Clear\")) {"
     },
     {
-      "line": 682,
+      "line": 773,
       "kind": "Button",
       "label": "Remove",
       "code": "if (ImGui::Button(\"Remove\")) {"
     },
     {
-      "line": 688,
+      "line": 779,
       "kind": "Button",
       "label": "Rename",
       "code": "if (ImGui::Button(\"Rename\")) {"
     },
     {
-      "line": 697,
+      "line": 788,
       "kind": "Button",
       "label": "OK",
       "code": "if (ImGui::Button(\"OK\", ImVec2(120, 0))) {"
     },
     {
-      "line": 702,
+      "line": 793,
       "kind": "Button",
       "label": "Cancel",
       "code": "if (ImGui::Button(\"Cancel\", ImVec2(120, 0))) {"
     },
     {
-      "line": 716,
+      "line": 807,
       "kind": "Button",
       "label": "Add New Slot",
       "code": "if (ImGui::Button(\"Add New Slot\")) {"
     },
     {
-      "line": 722,
+      "line": 813,
       "kind": "CollapsingHeader",
       "label": "MagicaCloth",
       "code": "if (ImGui::CollapsingHeader(\"MagicaCloth\", ImGuiTreeNodeFlags_DefaultOpen)) {"
     },
     {
-      "line": 723,
+      "line": 814,
       "kind": "Checkbox",
       "label": "Override MagicaCloth",
       "code": "ImGui::Checkbox(\"Override MagicaCloth\", &g_magicacloth_override);"
     },
     {
-      "line": 729,
+      "line": 820,
       "kind": "Checkbox",
       "label": "(cloth)",
       "code": "ImGui::Checkbox(\"(cloth)\", &g_magicacloth_output_cloth);"
     },
     {
-      "line": 733,
+      "line": 824,
       "kind": "Checkbox",
       "label": "(controller)",
       "code": "ImGui::Checkbox(\"(controller)\", &g_magicacloth_output_controller);"
     },
     {
-      "line": 742,
+      "line": 833,
       "kind": "InputFloat",
       "label": "Angle.LimitAngle",
       "code": "ImGui::InputFloat(\"Angle.LimitAngle\", &g_magicacloth_limitAngle);"
     },
     {
-      "line": 743,
+      "line": 834,
       "kind": "InputFloat",
       "label": "Damping",
       "code": "ImGui::InputFloat(\"Damping\", &g_magicacloth_damping);"
     },
     {
-      "line": 744,
+      "line": 835,
       "kind": "InputFloat",
       "label": "MovementSpeedLimit",
       "code": "ImGui::InputFloat(\"MovementSpeedLimit\", &g_magicacloth_movementSpeedLimit);"
     },
     {
-      "line": 745,
+      "line": 836,
       "kind": "InputFloat",
       "label": "RotationSpeedLimit",
       "code": "ImGui::InputFloat(\"RotationSpeedLimit\", &g_magicacloth_rotationSpeedLimit);"
     },
     {
-      "line": 746,
+      "line": 837,
       "kind": "InputFloat",
       "label": "LocalMovementSpeedLimit",
       "code": "ImGui::InputFloat(\"LocalMovementSpeedLimit\", &g_magicacloth_localMovementSpeedLimit);"
     },
     {
-      "line": 747,
+      "line": 838,
       "kind": "InputFloat",
       "label": "LocalRotationSpeedLimit",
       "code": "ImGui::InputFloat(\"LocalRotationSpeedLimit\", &g_magicacloth_localRotationSpeedLimit);"
     },
     {
-      "line": 748,
+      "line": 839,
       "kind": "InputFloat",
       "label": "ParticleSpeedLimit",
       "code": "ImGui::InputFloat(\"ParticleSpeedLimit\", &g_magicacloth_particleSpeedLimit);"
     },
     {
-      "line": 749,
+      "line": 840,
       "kind": "InputFloat",
       "label": "Spring.LimitDistance",
       "code": "ImGui::InputFloat(\"Spring.LimitDistance\", &g_magicacloth_springLimitDistance);"
     },
     {
-      "line": 750,
+      "line": 841,
       "kind": "InputFloat",
       "label": "Spring.SpringNoise",
       "code": "ImGui::InputFloat(\"Spring.SpringNoise\", &g_magicacloth_springNoise);"
     },
     {
-      "line": 755,
+      "line": 846,
       "kind": "CollapsingHeader",
       "label": "Assets",
       "code": "if (ImGui::CollapsingHeader(\"Assets\", ImGuiTreeNodeFlags_DefaultOpen)) {"
     },
     {
-      "line": 756,
+      "line": 847,
       "kind": "Checkbox",
       "label": "Use unsafe probing for unknown shaders",
       "code": "ImGui::Checkbox(\"Use unsafe probing for unknown shaders\", &g_shader_unsafe_probing);"
     },
     {
-      "line": 758,
+      "line": 849,
       "kind": "Checkbox",
       "label": "Use quick probing for unknown shaders (when not unsafe)",
       "code": "ImGui::Checkbox(\"Use quick probing for unknown shaders (when not unsafe)\", &g_shader_quickprobing);"
     },
     {
-      "line": 761,
+      "line": 852,
       "kind": "Checkbox",
       "label": "Output asset names",
       "code": "ImGui::Checkbox(\"Output asset names\", &g_loadasset_output);"
     },
     {
-      "line": 764,
+      "line": 855,
       "kind": "Checkbox",
       "label": "Extract assets of:",
       "code": "ImGui::Checkbox(\"Extract assets of:\", &g_extract_asset);"
     },
     {
-      "line": 769,
+      "line": 860,
       "kind": "Checkbox",
       "label": "Renderer",
       "code": "ImGui::Checkbox(\"Renderer\", &g_extract_asset_renderer);"
     },
     {
-      "line": 773,
+      "line": 864,
       "kind": "Checkbox",
       "label": "Texture2D",
       "code": "ImGui::Checkbox(\"Texture2D\", &g_extract_asset_texture2d);"
     },
     {
-      "line": 777,
+      "line": 868,
       "kind": "Checkbox",
       "label": "Image",
       "code": "ImGui::Checkbox(\"Image\", &g_extract_asset_image);"
     },
     {
-      "line": 779,
+      "line": 870,
       "kind": "Checkbox",
       "label": "RawImage",
       "code": "ImGui::Checkbox(\"RawImage\", &g_extract_asset_rawimage);"
     },
     {
-      "line": 781,
+      "line": 872,
       "kind": "Checkbox",
       "label": "Sprite",
       "code": "ImGui::Checkbox(\"Sprite\", &g_extract_asset_sprite);"
     },
     {
-      "line": 785,
+      "line": 876,
       "kind": "CollapsingHeader",
       "label": "Poses",
       "code": "if (ImGui::CollapsingHeader(\"Poses\", ImGuiTreeNodeFlags_DefaultOpen)) {"
     },
     {
-      "line": 789,
+      "line": 880,
       "kind": "CollapsingHeader",
       "label": "Legacy",
       "code": "if (ImGui::CollapsingHeader(\"Legacy\", ImGuiTreeNodeFlags_None)) {"
     },
     {
-      "line": 790,
+      "line": 881,
       "kind": "Checkbox",
       "label": "Live Allow Same Idol (Dangerous)",
       "code": "ImGui::Checkbox(\"Live Allow Same Idol (Dangerous)\", &g_allow_same_idol);"
     },
     {
-      "line": 797,
+      "line": 888,
       "kind": "CollapsingHeader",
       "label": "Devs",
       "code": "if (ImGui::CollapsingHeader(\"Devs\", ImGuiTreeNodeFlags_None)) {"
     },
     {
-      "line": 808,
+      "line": 899,
       "kind": "Button",
       "label": "OK",
       "code": "if (ImGui::Button(\"OK\")) {"
     },
     {
-      "line": 821,
+      "line": 912,
       "kind": "Button",
       "label": "OK",
       "code": "if (ImGui::Button(\"OK\", ImVec2(120, 0))) {"
     },
     {
-      "line": 827,
+      "line": 918,
       "kind": "Button",
       "label": "Cancel",
       "code": "if (ImGui::Button(\"Cancel\", ImVec2(120, 0))) {"
     },
     {
-      "line": 847,
+      "line": 938,
       "kind": "Button",
       "label": "Scan idol objects",
       "code": "if (ImGui::Button(\"Scan idol objects\")) {"
     },
     {
-      "line": 876,
+      "line": 967,
       "kind": "Button",
       "label": "Serialize",
       "code": "if (ImGui::Button(\"Serialize\")) {"
     },
     {
-      "line": 901,
+      "line": 992,
       "kind": "Button",
       "label": "ApplyTo",
       "code": "if (ImGui::Button(\"ApplyTo\")) {"
     },
     {
-      "line": 919,
+      "line": 1010,
       "kind": "Button",
       "label": "Clear",
       "code": "if (ImGui::Button(\"Clear\")) {"
     },
     {
-      "line": 961,
+      "line": 1052,
       "kind": "Button",
       "label": "Rename",
       "code": "if (ImGui::Button(\"Rename\")) {"
     },
     {
-      "line": 971,
+      "line": 1062,
       "kind": "Button",
       "label": "Copy",
       "code": "if (ImGui::Button(\"Copy\")) {"
     },
     {
-      "line": 977,
+      "line": 1068,
       "kind": "Button",
       "label": "Remove",
       "code": "if (ImGui::Button(\"Remove\")) {"
     },
     {
-      "line": 987,
+      "line": 1078,
       "kind": "Button",
       "label": "Clear cached poses",
       "code": "if (ImGui::Button(\"Clear cached poses\")) {"
     },
     {
-      "line": 993,
+      "line": 1084,
       "kind": "Button",
       "label": "Import from clipboard",
       "code": "if (ImGui::Button(\"Import from clipboard\")) {"
     },
     {
-      "line": 1007,
+      "line": 1098,
       "kind": "Button",
       "label": "Clear all overridings",
       "code": "if (ImGui::Button(\"Clear all overridings\")) {"
     },
     {
-      "line": 1017,
+      "line": 1108,
       "kind": "Checkbox",
       "label": "Output networking calls",
       "code": "ImGui::Checkbox(\"Output networking calls\", &tools::output_networking_calls);"
     },
     {
-      "line": 1020,
+      "line": 1111,
       "kind": "Button",
       "label": "BuildCallingRelations",
       "code": "if (ImGui::Button(\"BuildCallingRelations\")) {"
@@ -899,7 +995,7 @@
   "active_hooks": [
     {
       "hook": "SetResolution",
-      "line": 4197,
+      "line": 4361,
       "code": "ADD_HOOK(SetResolution, \"SetResolution at %p\");",
       "kind": "method",
       "target": [
@@ -913,7 +1009,7 @@
     },
     {
       "hook": "StoryExtensions_IsLocked",
-      "line": 4203,
+      "line": 4367,
       "code": "ADD_HOOK_1(StoryExtensions_IsLocked);",
       "kind": "method",
       "target": [
@@ -927,7 +1023,7 @@
     },
     {
       "hook": "LocalizationManager_GetTextOrNull",
-      "line": 4204,
+      "line": 4368,
       "code": "ADD_HOOK(LocalizationManager_GetTextOrNull, \"LocalizationManager_GetTextOrNull at %p\");",
       "kind": "method",
       "target": [
@@ -941,8 +1037,8 @@
     },
     {
       "hook": "GetResolutionSize",
-      "line": 4205,
-      "code": "ADD_HOOK(GetResolutionSize, \"GetResolutionSize at %p\");",
+      "line": 4369,
+      "code": "ADD_HOOK(GetResolutionSize, \"GetResolutionSize legacy at %p\");",
       "kind": "method",
       "target": [
         "Prism.Rendering.Runtime.dll",
@@ -954,8 +1050,22 @@
       "probe_covered": true
     },
     {
+      "hook": "UniversalRenderPipelineAsset_set_renderScale",
+      "line": 4370,
+      "code": "ADD_HOOK(UniversalRenderPipelineAsset_set_renderScale, \"UniversalRenderPipelineAsset.set_renderScale at %p\");",
+      "kind": "method",
+      "target": [
+        "Unity.RenderPipelines.Universal.Runtime.dll",
+        "UnityEngine.Rendering.Universal",
+        "UniversalRenderPipelineAsset",
+        "set_renderScale",
+        1
+      ],
+      "probe_covered": true
+    },
+    {
       "hook": "AssetBundle_LoadAsset",
-      "line": 4206,
+      "line": 4371,
       "code": "ADD_HOOK(AssetBundle_LoadAsset, \"AssetBundle_LoadAsset at %p\");",
       "kind": "method",
       "target": [
@@ -969,7 +1079,7 @@
     },
     {
       "hook": "LiveMVOverlayView_UpdateLyrics",
-      "line": 4207,
+      "line": 4372,
       "code": "ADD_HOOK(LiveMVOverlayView_UpdateLyrics, \"LiveMVOverlayView_UpdateLyrics at %p\");",
       "kind": "method",
       "target": [
@@ -983,7 +1093,7 @@
     },
     {
       "hook": "TimelineController_SetLyric",
-      "line": 4208,
+      "line": 4373,
       "code": "ADD_HOOK(TimelineController_SetLyric, \"TimelineController_SetLyric at %p\");",
       "kind": "method",
       "target": [
@@ -997,7 +1107,7 @@
     },
     {
       "hook": "get_baseCamera",
-      "line": 4209,
+      "line": 4374,
       "code": "ADD_HOOK(get_baseCamera, \"get_baseCamera at %p\");",
       "kind": "method",
       "target": [
@@ -1011,7 +1121,7 @@
     },
     {
       "hook": "Unity_get_position",
-      "line": 4210,
+      "line": 4375,
       "code": "ADD_HOOK(Unity_get_position, \"Unity_get_position at %p\");",
       "kind": "method",
       "target": [
@@ -1025,7 +1135,7 @@
     },
     {
       "hook": "Unity_set_position",
-      "line": 4211,
+      "line": 4376,
       "code": "ADD_HOOK(Unity_set_position, \"Unity_set_position at %p\");",
       "kind": "method",
       "target": [
@@ -1039,7 +1149,7 @@
     },
     {
       "hook": "Unity_get_fieldOfView",
-      "line": 4212,
+      "line": 4377,
       "code": "ADD_HOOK(Unity_get_fieldOfView, \"Unity_get_fieldOfView at %p\");",
       "kind": "method",
       "target": [
@@ -1053,7 +1163,7 @@
     },
     {
       "hook": "Unity_set_fieldOfView",
-      "line": 4213,
+      "line": 4378,
       "code": "ADD_HOOK(Unity_set_fieldOfView, \"Unity_set_fieldOfView at %p\");",
       "kind": "method",
       "target": [
@@ -1067,7 +1177,7 @@
     },
     {
       "hook": "Unity_InternalLookAt",
-      "line": 4214,
+      "line": 4379,
       "code": "ADD_HOOK(Unity_InternalLookAt, \"Unity_InternalLookAt at %p\");",
       "kind": "method",
       "target": [
@@ -1081,7 +1191,7 @@
     },
     {
       "hook": "Unity_set_nearClipPlane",
-      "line": 4215,
+      "line": 4380,
       "code": "ADD_HOOK(Unity_set_nearClipPlane, \"Unity_set_nearClipPlane at %p\");",
       "kind": "method",
       "target": [
@@ -1095,7 +1205,7 @@
     },
     {
       "hook": "Unity_get_nearClipPlane",
-      "line": 4216,
+      "line": 4381,
       "code": "ADD_HOOK(Unity_get_nearClipPlane, \"Unity_get_nearClipPlane at %p\");",
       "kind": "method",
       "target": [
@@ -1109,7 +1219,7 @@
     },
     {
       "hook": "Unity_get_farClipPlane",
-      "line": 4217,
+      "line": 4382,
       "code": "ADD_HOOK(Unity_get_farClipPlane, \"Unity_get_farClipPlane at %p\");",
       "kind": "method",
       "target": [
@@ -1123,7 +1233,7 @@
     },
     {
       "hook": "Unity_set_farClipPlane",
-      "line": 4218,
+      "line": 4383,
       "code": "ADD_HOOK(Unity_set_farClipPlane, \"Unity_set_farClipPlane at %p\");",
       "kind": "method",
       "target": [
@@ -1137,7 +1247,7 @@
     },
     {
       "hook": "Unity_get_rotation",
-      "line": 4219,
+      "line": 4384,
       "code": "ADD_HOOK(Unity_get_rotation, \"Unity_get_rotation at %p\");",
       "kind": "method",
       "target": [
@@ -1151,7 +1261,7 @@
     },
     {
       "hook": "Unity_set_rotation",
-      "line": 4220,
+      "line": 4385,
       "code": "ADD_HOOK(Unity_set_rotation, \"Unity_set_rotation at %p\");",
       "kind": "method",
       "target": [
@@ -1165,7 +1275,7 @@
     },
     {
       "hook": "TMP_Text_set_text",
-      "line": 4222,
+      "line": 4387,
       "code": "ADD_HOOK(TMP_Text_set_text, \"TMP_Text_set_text at %p\");",
       "kind": "method",
       "target": [
@@ -1179,7 +1289,7 @@
     },
     {
       "hook": "UITextMeshProUGUI_Awake",
-      "line": 4223,
+      "line": 4388,
       "code": "ADD_HOOK(UITextMeshProUGUI_Awake, \"UITextMeshProUGUI_Awake at %p\");",
       "kind": "method",
       "target": [
@@ -1193,7 +1303,7 @@
     },
     {
       "hook": "ScenarioManager_Init",
-      "line": 4224,
+      "line": 4389,
       "code": "ADD_HOOK(ScenarioManager_Init, \"ScenarioManager_Init at %p\");",
       "kind": "method",
       "target": [
@@ -1207,7 +1317,7 @@
     },
     {
       "hook": "DataFile_GetBytes",
-      "line": 4225,
+      "line": 4390,
       "code": "ADD_HOOK(DataFile_GetBytes, \"DataFile_GetBytes at %p\");",
       "kind": "method",
       "target": [
@@ -1221,7 +1331,7 @@
     },
     {
       "hook": "TextLog_AddLog",
-      "line": 4227,
+      "line": 4392,
       "code": "ADD_HOOK(TextLog_AddLog, \"TextLog_AddLog at %p\");",
       "kind": "method",
       "target": [
@@ -1235,7 +1345,7 @@
     },
     {
       "hook": "InvokeMoveNext",
-      "line": 4228,
+      "line": 4393,
       "code": "ADD_HOOK(InvokeMoveNext, \"InvokeMoveNext at %p\");",
       "kind": "method",
       "target": [
@@ -1249,7 +1359,7 @@
     },
     {
       "hook": "DepthOfFieldClip_CreatePlayable",
-      "line": 4230,
+      "line": 4395,
       "code": "ADD_HOOK(DepthOfFieldClip_CreatePlayable, \"DepthOfFieldClip_CreatePlayable at %p\");",
       "kind": "method",
       "target": [
@@ -1263,7 +1373,7 @@
     },
     {
       "hook": "AssembleCharacter_ApplyParam",
-      "line": 4239,
+      "line": 4404,
       "code": "ADD_HOOK(AssembleCharacter_ApplyParam, \"AssembleCharacter_ApplyParam at %p\");",
       "kind": "method",
       "target": [
@@ -1277,7 +1387,7 @@
     },
     {
       "hook": "MainThreadDispatcher_LateUpdate",
-      "line": 4240,
+      "line": 4405,
       "code": "ADD_HOOK(MainThreadDispatcher_LateUpdate, \"MainThreadDispatcher_LateUpdate at %p\");",
       "kind": "method",
       "target": [
@@ -1291,7 +1401,7 @@
     },
     {
       "hook": "LiveMVUnitConfirmationModel_ctor",
-      "line": 4245,
+      "line": 4410,
       "code": "ADD_HOOK(LiveMVUnitConfirmationModel_ctor, \"LiveMVUnitConfirmationModel_ctor at %p\");",
       "kind": "method",
       "target": [
@@ -1305,7 +1415,7 @@
     },
     {
       "hook": "RunwayUnitConfirmationModel_ctor",
-      "line": 4246,
+      "line": 4411,
       "code": "ADD_HOOK(RunwayUnitConfirmationModel_ctor, \"RunwayUnitConfirmationModel_ctor at %p\");",
       "kind": "method",
       "target": [
@@ -1319,7 +1429,7 @@
     },
     {
       "hook": "SwayString_SetupPoint",
-      "line": 4247,
+      "line": 4412,
       "code": "ADD_HOOK(SwayString_SetupPoint, \"SwayString_SetupPoint at %p\");",
       "kind": "method",
       "target": [
@@ -1333,7 +1443,7 @@
     },
     {
       "hook": "LiveMVUnit_GetMemberChangeRequestData",
-      "line": 4248,
+      "line": 4413,
       "code": "ADD_HOOK(LiveMVUnit_GetMemberChangeRequestData, \"LiveMVUnit_GetMemberChangeRequestData at %p\");",
       "kind": "method",
       "target": [
@@ -1347,7 +1457,7 @@
     },
     {
       "hook": "LiveMVUnitMemberChangePresenter_initializeAsync_b_4_MoveNext",
-      "line": 4249,
+      "line": 4414,
       "code": "ADD_HOOK(LiveMVUnitMemberChangePresenter_initializeAsync_b_4_MoveNext, \"LiveMVUnitMemberChangePresenter_initializeAsync_b_4_MoveNext at %p\");",
       "kind": "nested_state_machine",
       "target": null,
@@ -1355,7 +1465,7 @@
     },
     {
       "hook": "MvUnitSlotGenerator_NewMvUnitSlot",
-      "line": 4250,
+      "line": 4415,
       "code": "ADD_HOOK(MvUnitSlotGenerator_NewMvUnitSlot, \"MvUnitSlotGenerator_NewMvUnitSlot at %p\");",
       "kind": "method",
       "target": [
@@ -1369,7 +1479,7 @@
     },
     {
       "hook": "LiveUnitMemberChangeViewModel_sameIdolPredicate",
-      "line": 4251,
+      "line": 4416,
       "code": "ADD_HOOK(LiveUnitMemberChangeViewModel_sameIdolPredicate, \"LiveUnitMemberChangeViewModel same-idol predicate at %p\");",
       "kind": "nested_same_idol_consumer",
       "target": null,
@@ -1377,7 +1487,7 @@
     },
     {
       "hook": "LiveMvUnitMemberChangeViewModel_buildIdolViewModel",
-      "line": 4252,
+      "line": 4417,
       "code": "ADD_HOOK(LiveMvUnitMemberChangeViewModel_buildIdolViewModel, \"LiveMvUnitMemberChangeViewModel idol-row builder at %p\");",
       "kind": "nested_same_idol_consumer",
       "target": null,
@@ -1385,7 +1495,7 @@
     },
     {
       "hook": "CriWareErrorHandler_HandleMessage",
-      "line": 4255,
+      "line": 4420,
       "code": "ADD_HOOK(CriWareErrorHandler_HandleMessage, \"CriWareErrorHandler_HandleMessage at %p\");",
       "kind": "method",
       "target": [
@@ -1399,7 +1509,7 @@
     },
     {
       "hook": "GGIregualDetector_ShowPopup",
-      "line": 4256,
+      "line": 4421,
       "code": "ADD_HOOK(GGIregualDetector_ShowPopup, \"GGIregualDetector_ShowPopup at %p\");",
       "kind": "method",
       "target": [
@@ -1413,7 +1523,7 @@
     },
     {
       "hook": "DMMGameGuard_NPGameMonCallback",
-      "line": 4257,
+      "line": 4422,
       "code": "ADD_HOOK(DMMGameGuard_NPGameMonCallback, \"DMMGameGuard_NPGameMonCallback at %p\");",
       "kind": "method",
       "target": [
@@ -1427,7 +1537,7 @@
     },
     {
       "hook": "DMMGameGuard_SetCheckMode",
-      "line": 4259,
+      "line": 4424,
       "code": "ADD_HOOK(DMMGameGuard_SetCheckMode, \"DMMGameGuard_SetCheckMode at %p\");",
       "kind": "method",
       "target": [
@@ -1441,7 +1551,7 @@
     },
     {
       "hook": "set_fps",
-      "line": 4260,
+      "line": 4425,
       "code": "ADD_HOOK(set_fps, \"set_fps at %p\");",
       "kind": "icall",
       "target": "UnityEngine.Application::set_targetFrameRate(System.Int32)",
@@ -1449,7 +1559,7 @@
     },
     {
       "hook": "set_vsync_count",
-      "line": 4261,
+      "line": 4426,
       "code": "ADD_HOOK(set_vsync_count, \"set_vsync_count at %p\");",
       "kind": "icall",
       "target": "UnityEngine.QualitySettings::set_vSyncCount(System.Int32)",
@@ -1457,7 +1567,7 @@
     },
     {
       "hook": "Unity_Quit",
-      "line": 4262,
+      "line": 4427,
       "code": "ADD_HOOK(Unity_Quit, \"Unity_Quit at %p\");",
       "kind": "icall",
       "target": "UnityEngine.Application::Quit(System.Int32)",
@@ -1465,7 +1575,7 @@
     },
     {
       "hook": "LiveMVStartData_ctor",
-      "line": 4264,
+      "line": 4439,
       "code": "ADD_HOOK(LiveMVStartData_ctor, \"LiveMVStartData_ctor at %p\");",
       "kind": "method",
       "target": [
@@ -1479,7 +1589,7 @@
     },
     {
       "hook": "LiveStartDataExtensions_PreLoadAsync",
-      "line": 4265,
+      "line": 4440,
       "code": "ADD_HOOK_1(LiveStartDataExtensions_PreLoadAsync);",
       "kind": "method",
       "target": [
@@ -1493,7 +1603,7 @@
     },
     {
       "hook": "Subject_OnNext",
-      "line": 4267,
+      "line": 4442,
       "code": "ADD_HOOK_1(Subject_OnNext);",
       "kind": "closed_generic_reflection",
       "target": null,
@@ -1501,7 +1611,7 @@
     },
     {
       "hook": "MagicaCloth_BuildAndRun",
-      "line": 4268,
+      "line": 4443,
       "code": "ADD_HOOK_1(MagicaCloth_BuildAndRun);",
       "kind": "method",
       "target": [
@@ -1515,7 +1625,7 @@
     },
     {
       "hook": "MagicaCloth_SetParameterChange",
-      "line": 4269,
+      "line": 4444,
       "code": "ADD_HOOK_1(MagicaCloth_SetParameterChange);",
       "kind": "method",
       "target": [
@@ -1529,7 +1639,7 @@
     },
     {
       "hook": "MagicaClothController_get_Inertia",
-      "line": 4270,
+      "line": 4445,
       "code": "ADD_HOOK_1(MagicaClothController_get_Inertia);",
       "kind": "method",
       "target": [
@@ -1543,7 +1653,7 @@
     },
     {
       "hook": "MagicaClothController_get_Radius",
-      "line": 4271,
+      "line": 4446,
       "code": "ADD_HOOK_1(MagicaClothController_get_Radius);",
       "kind": "method",
       "target": [
@@ -1557,7 +1667,7 @@
     },
     {
       "hook": "MagicaClothController_Awake",
-      "line": 4274,
+      "line": 4449,
       "code": "ADD_HOOK_1(MagicaClothController_Awake);",
       "kind": "method",
       "target": [
@@ -1571,7 +1681,7 @@
     },
     {
       "hook": "CostumeChangeViewModel__ctor",
-      "line": 4276,
+      "line": 4451,
       "code": "ADD_HOOK_1(CostumeChangeViewModel__ctor);",
       "kind": "method",
       "target": [
@@ -1585,7 +1695,7 @@
     },
     {
       "hook": "CostumeChangeViewModel_CanDecide0",
-      "line": 4277,
+      "line": 4452,
       "code": "ADD_HOOK_1(CostumeChangeViewModel_CanDecide0);",
       "kind": "method",
       "target": [
@@ -1599,7 +1709,7 @@
     },
     {
       "hook": "CostumeChangeViewModel_CanDecide2",
-      "line": 4278,
+      "line": 4453,
       "code": "ADD_HOOK_1(CostumeChangeViewModel_CanDecide2);",
       "kind": "method",
       "target": [
@@ -1613,7 +1723,7 @@
     },
     {
       "hook": "CostumeStatusExtensions_CanWear",
-      "line": 4279,
+      "line": 4454,
       "code": "ADD_HOOK_1(CostumeStatusExtensions_CanWear);",
       "kind": "method",
       "target": [
@@ -1627,7 +1737,7 @@
     },
     {
       "hook": "RefreshViewModels",
-      "line": 4280,
+      "line": 4455,
       "code": "ADD_HOOK_ADDR(PRISM.Adapters.dll, PRISM.Adapters.CostumeChange, CostumeChangeViewModel, RefreshViewModels, 0);",
       "kind": "method",
       "target": [
@@ -1641,7 +1751,7 @@
     },
     {
       "hook": "ModifyPreview",
-      "line": 4281,
+      "line": 4456,
       "code": "ADD_HOOK_ADDR(PRISM.Adapters.dll, PRISM.Adapters.CostumeChange, CostumeChangeViewModel, ModifyPreview, 1);",
       "kind": "method",
       "target": [
@@ -1657,97 +1767,97 @@
   "disabled_hooks": [
     {
       "hook": "UnsafeLoadBytesFromKey",
-      "line": 4226,
+      "line": 4391,
       "code": "//ADD_HOOK(UnsafeLoadBytesFromKey, \"UnsafeLoadBytesFromKey at %p\");"
     },
     {
       "hook": "Live_SetEnableDepthOfField",
-      "line": 4229,
+      "line": 4394,
       "code": "// ADD_HOOK(Live_SetEnableDepthOfField, \"Live_SetEnableDepthOfField at %p\");"
     },
     {
       "hook": "PostProcess_DepthOfFieldClip_CreatePlayable",
-      "line": 4231,
+      "line": 4396,
       "code": "//ADD_HOOK(PostProcess_DepthOfFieldClip_CreatePlayable, \"PostProcess_DepthOfFieldClip_CreatePlayable at %p\");"
     },
     {
       "hook": "Live_Update",
-      "line": 4232,
+      "line": 4397,
       "code": "// ADD_HOOK(Live_Update, \"Live_Update at %p\");"
     },
     {
       "hook": "LiveCostumeChangeView_setTryOnMode",
-      "line": 4233,
+      "line": 4398,
       "code": "//ADD_HOOK(LiveCostumeChangeView_setTryOnMode, \"LiveCostumeChangeView_setTryOnMode at %p\");"
     },
     {
       "hook": "LiveCostumeChangeView_setIdolCostume",
-      "line": 4234,
+      "line": 4399,
       "code": "//ADD_HOOK(LiveCostumeChangeView_setIdolCostume, \"LiveCostumeChangeView_setIdolCostume at %p\");"
     },
     {
       "hook": "LiveCostumeChangeModel_GetDress",
-      "line": 4235,
+      "line": 4400,
       "code": "//ADD_HOOK(LiveCostumeChangeModel_GetDress, \"LiveCostumeChangeModel_GetDress at %p\");"
     },
     {
       "hook": "LiveCostumeChangeModel_GetHairstyle",
-      "line": 4236,
+      "line": 4401,
       "code": "//ADD_HOOK(LiveCostumeChangeModel_GetHairstyle, \"LiveCostumeChangeModel_GetHairstyle at %p\");"
     },
     {
       "hook": "LiveCostumeChangeModel_GetAccessory",
-      "line": 4237,
+      "line": 4402,
       "code": "//ADD_HOOK(LiveCostumeChangeModel_GetAccessory, \"LiveCostumeChangeModel_GetAccessory at %p\");"
     },
     {
       "hook": "LiveCostumeChangeModel_ctor",
-      "line": 4238,
+      "line": 4403,
       "code": "//ADD_HOOK(LiveCostumeChangeModel_ctor, \"LiveCostumeChangeModel_ctor at %p\");"
     },
     {
       "hook": "dic_int_ICostumeStatus_add",
-      "line": 4241,
+      "line": 4406,
       "code": "//ADD_HOOK(dic_int_ICostumeStatus_add, \"dic_int_ICostumeStatus_add at %p\");"
     },
     {
       "hook": "GetCostumeListReply_get_CostumeList",
-      "line": 4242,
+      "line": 4407,
       "code": "//ADD_HOOK(GetCostumeListReply_get_CostumeList, \"GetCostumeListReply_get_CostumeList at %p\");"
     },
     {
       "hook": "GetCostumeListReply_get_HairstyleList",
-      "line": 4243,
+      "line": 4408,
       "code": "//ADD_HOOK(GetCostumeListReply_get_HairstyleList, \"GetCostumeListReply_get_HairstyleList at %p\");"
     },
     {
       "hook": "GetCostumeListReply_get_AccessoryList",
-      "line": 4244,
+      "line": 4409,
       "code": "//ADD_HOOK(GetCostumeListReply_get_AccessoryList, \"GetCostumeListReply_get_AccessoryList at %p\");"
     },
     {
       "hook": "CheckVocalSeparatedSatisfy",
-      "line": 4253,
+      "line": 4418,
       "code": "//ADD_HOOK(CheckVocalSeparatedSatisfy, \"CheckVocalSeparatedSatisfy at %p\");"
     },
     {
       "hook": "CheckLimitedVocalSeparatedSatisfy_2",
-      "line": 4254,
+      "line": 4419,
       "code": "//ADD_HOOK(CheckLimitedVocalSeparatedSatisfy_2, \"CheckLimitedVocalSeparatedSatisfy_2 at %p\");"
     },
     {
       "hook": "DMMGameGuard_Setup",
-      "line": 4258,
+      "line": 4423,
       "code": "// ADD_HOOK(DMMGameGuard_Setup, \"DMMGameGuard_Setup at %p\");"
     },
     {
       "hook": "BodyParamFloatProperty__ctor",
-      "line": 4272,
+      "line": 4447,
       "code": "//ADD_HOOK_1(BodyParamFloatProperty__ctor);"
     },
     {
       "hook": "BodyParamFloatProperty__getValue",
-      "line": 4273,
+      "line": 4448,
       "code": "//ADD_HOOK_1(BodyParamFloatProperty__getValue);"
     }
   ],
@@ -1891,6 +2001,27 @@
       "class": "RenderManager",
       "method": "GetResolutionSize",
       "argc": 1
+    },
+    {
+      "assembly": "Unity.RenderPipelines.Universal.Runtime.dll",
+      "namespace": "UnityEngine.Rendering.Universal",
+      "class": "UniversalRenderPipelineAsset",
+      "method": "get_renderScale",
+      "argc": 0
+    },
+    {
+      "assembly": "Unity.RenderPipelines.Universal.Runtime.dll",
+      "namespace": "UnityEngine.Rendering.Universal",
+      "class": "UniversalRenderPipelineAsset",
+      "method": "set_renderScale",
+      "argc": 1
+    },
+    {
+      "assembly": "Unity.RenderPipelines.Universal.Runtime.dll",
+      "namespace": "UnityEngine.Rendering.Universal",
+      "class": "UniversalRenderPipeline",
+      "method": "get_asset",
+      "argc": 0
     },
     {
       "assembly": "PRISM.Interactions.Live.dll",

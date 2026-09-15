@@ -1018,8 +1018,6 @@ namespace
 
 	HOOK_ORIG_TYPE LocalizationManager_GetTextOrNull_orig;
 	Il2CppString* LocalizationManager_GetTextOrNull_hook(void* _this, Il2CppString* category, int id) {
-		if (g_max_fps != -1) set_fps_hook(g_max_fps);
-		if (g_vsync_count != -1) set_vsync_count_hook(g_vsync_count);
 		itLocalizationManagerDic(_this);
 		std::string resultText = "";
 		if (SCLocal::getLocalifyText(utility::conversions::to_utf8string(category->start_char), id, &resultText)) {
@@ -1037,27 +1035,65 @@ namespace
 		return HOOK_CAST_CALL(Il2CppString*, LocalizationManager_GetTextOrNull)(_this, category, id);
 	}
 
+	// Legacy compatibility fallback. SCSP 2.17 normal MV rendering no longer
+	// consumes this method, so the authoritative owner is the URP asset below.
 	HOOK_ORIG_TYPE GetResolutionSize_orig;
 	Vector2Int_t GetResolutionSize_hook(void* camera, void* method) {
 		auto ret = HOOK_CAST_CALL(Vector2Int_t, GetResolutionSize)(camera, method);
-		const auto original = ret;
-		if (g_3d_resolution_scale != 1.0f) {
-			ret.x *= g_3d_resolution_scale;
-			ret.y *= g_3d_resolution_scale;
-			SCCamera::currRenderResolution.x = ret.x;
-			SCCamera::currRenderResolution.y = ret.y;
-		}
 		if (g_diagnostic_file_trace) {
 			static std::atomic<int> resolutionTraceCount{ 0 };
 			const auto traceIndex = resolutionTraceCount.fetch_add(1, std::memory_order_relaxed);
 			if (traceIndex < 12) {
-				full_trace("3d-scale: hit #" + std::to_string(traceIndex + 1) +
-					" scale=" + std::to_string(g_3d_resolution_scale) +
-					" original=" + std::to_string(original.x) + "x" + std::to_string(original.y) +
-					" result=" + std::to_string(ret.x) + "x" + std::to_string(ret.y));
+				full_trace("3d-scale legacy GetResolutionSize hit #" + std::to_string(traceIndex + 1) +
+					" value=" + std::to_string(ret.x) + "x" + std::to_string(ret.y));
 			}
 		}
 		return ret;
+	}
+
+	static std::atomic<float> g_game_base_urp_render_scale{ 1.0f };
+	static std::atomic<float> g_runtime_urp_render_scale{ 1.0f };
+	static std::atomic<int> g_game_requested_fps{ -1 };
+	static std::atomic<int> g_runtime_fps{ -1 };
+	static std::atomic<int> g_game_requested_vsync{ 0 };
+	static std::atomic<int> g_runtime_vsync{ 0 };
+
+	static void* (*g_urp_get_asset)() = nullptr;
+	static float (*g_urp_asset_get_render_scale)(void*) = nullptr;
+	static int (*g_get_target_fps)() = nullptr;
+	static int (*g_get_vsync_count)() = nullptr;
+
+	static float ClampUrpRenderScale(float value) {
+		// UniversalRenderPipeline 2.17 reports minRenderScale=0.1, maxRenderScale=2.0.
+		if (!(value > 0.0f)) return 1.0f;
+		if (value < 0.1f) return 0.1f;
+		if (value > 2.0f) return 2.0f;
+		return value;
+	}
+
+	static float EffectiveUrpRenderScale(float baseScale) {
+		float multiplier = g_3d_resolution_scale;
+		if (!(multiplier > 0.0f)) multiplier = 1.0f;
+		return ClampUrpRenderScale(baseScale * multiplier);
+	}
+
+	HOOK_ORIG_TYPE UniversalRenderPipelineAsset_set_renderScale_orig;
+	void UniversalRenderPipelineAsset_set_renderScale_hook(void* self, float value) {
+		g_game_base_urp_render_scale.store(value, std::memory_order_relaxed);
+		const float effective = EffectiveUrpRenderScale(value);
+		HOOK_CAST_CALL(void, UniversalRenderPipelineAsset_set_renderScale)(self, effective);
+		g_runtime_urp_render_scale.store(effective, std::memory_order_relaxed);
+
+		if (g_diagnostic_file_trace) {
+			static std::atomic<int> urpScaleTraceCount{ 0 };
+			const auto traceIndex = urpScaleTraceCount.fetch_add(1, std::memory_order_relaxed);
+			if (traceIndex < 24) {
+				full_trace("3d-scale URP setter #" + std::to_string(traceIndex + 1) +
+					" gameBase=" + std::to_string(value) +
+					" multiplier=" + std::to_string(g_3d_resolution_scale) +
+					" effective=" + std::to_string(effective));
+			}
+		}
 	}
 
 	static const char* UnityShaderUsualPropertyNames[] = {
@@ -3636,13 +3672,99 @@ namespace
 
 	HOOK_ORIG_TYPE set_vsync_count_orig;
 	void set_vsync_count_hook(int value) {
-		return HOOK_CAST_CALL(void, set_vsync_count)(g_vsync_count == -1 ? value : g_vsync_count);
+		g_game_requested_vsync.store(value, std::memory_order_relaxed);
+		const int applied = (g_vsync_count == -1) ? value : g_vsync_count;
+		HOOK_CAST_CALL(void, set_vsync_count)(applied);
+		g_runtime_vsync.store(applied, std::memory_order_relaxed);
+		if (g_diagnostic_file_trace) {
+			static std::atomic<int> traceCount{ 0 };
+			const auto i = traceCount.fetch_add(1, std::memory_order_relaxed);
+			if (i < 16) {
+				full_trace("vsync setter #" + std::to_string(i + 1) +
+					" gameRequested=" + std::to_string(value) +
+					" override=" + std::to_string(g_vsync_count) +
+					" applied=" + std::to_string(applied));
+			}
+		}
 	}
 
 	HOOK_ORIG_TYPE set_fps_orig;
 	void set_fps_hook(int value) {
-		return HOOK_CAST_CALL(void, set_fps)(g_max_fps == -1 ? value : g_max_fps);
+		g_game_requested_fps.store(value, std::memory_order_relaxed);
+		const int applied = (g_max_fps == -1) ? value : g_max_fps;
+		HOOK_CAST_CALL(void, set_fps)(applied);
+		g_runtime_fps.store(applied, std::memory_order_relaxed);
+		if (g_diagnostic_file_trace) {
+			static std::atomic<int> traceCount{ 0 };
+			const auto i = traceCount.fetch_add(1, std::memory_order_relaxed);
+			if (i < 16) {
+				full_trace("fps setter #" + std::to_string(i + 1) +
+					" gameRequested=" + std::to_string(value) +
+					" override=" + std::to_string(g_max_fps) +
+					" applied=" + std::to_string(applied));
+			}
+		}
 	}
+
+	static void RefreshPerformanceReadback() {
+		if (g_get_target_fps) {
+			g_runtime_fps.store(g_get_target_fps(), std::memory_order_relaxed);
+		}
+		if (g_get_vsync_count) {
+			g_runtime_vsync.store(g_get_vsync_count(), std::memory_order_relaxed);
+		}
+	}
+
+	static void ApplyPerformanceSettingsNow() {
+		int requestedFps = g_game_requested_fps.load(std::memory_order_relaxed);
+		int requestedVsync = g_game_requested_vsync.load(std::memory_order_relaxed);
+		if (g_get_target_fps && requestedFps == -1) requestedFps = g_get_target_fps();
+		if (g_get_vsync_count && requestedVsync < 0) requestedVsync = g_get_vsync_count();
+
+		const int appliedFps = (g_max_fps == -1) ? requestedFps : g_max_fps;
+		const int appliedVsync = (g_vsync_count == -1) ? requestedVsync : g_vsync_count;
+		if (set_fps_orig && appliedFps >= -1) {
+			HOOK_CAST_CALL(void, set_fps)(appliedFps);
+		}
+		if (set_vsync_count_orig && appliedVsync >= 0) {
+			HOOK_CAST_CALL(void, set_vsync_count)(appliedVsync);
+		}
+		RefreshPerformanceReadback();
+		full_trace("performance apply: targetFrameRate=" + std::to_string(g_runtime_fps.load(std::memory_order_relaxed)) +
+			" vSyncCount=" + std::to_string(g_runtime_vsync.load(std::memory_order_relaxed)) +
+			" gameRequestedFps=" + std::to_string(requestedFps) +
+			" gameRequestedVSync=" + std::to_string(requestedVsync));
+	}
+
+	static void InitializeAndApplyUrpRenderScale() {
+		if (!g_urp_get_asset || !g_urp_asset_get_render_scale || !UniversalRenderPipelineAsset_set_renderScale_orig) {
+			full_trace("3d-scale URP apply skipped: owner unavailable");
+			return;
+		}
+		void* asset = g_urp_get_asset();
+		if (!asset) {
+			full_trace("3d-scale URP apply skipped: asset unavailable");
+			return;
+		}
+		const float current = g_urp_asset_get_render_scale(asset);
+		// On first owner acquisition the current value is the game's base scale.
+		// Subsequent GUI/config applications preserve the most recent game request
+		// captured by the setter hook rather than compounding the multiplier.
+		static std::atomic<bool> initialized{ false };
+		if (!initialized.exchange(true, std::memory_order_acq_rel)) {
+			g_game_base_urp_render_scale.store(current, std::memory_order_relaxed);
+		}
+		const float base = g_game_base_urp_render_scale.load(std::memory_order_relaxed);
+		const float effective = EffectiveUrpRenderScale(base);
+		HOOK_CAST_CALL(void, UniversalRenderPipelineAsset_set_renderScale)(asset, effective);
+		const float readback = g_urp_asset_get_render_scale(asset);
+		g_runtime_urp_render_scale.store(readback, std::memory_order_relaxed);
+		full_trace("3d-scale URP apply: gameBase=" + std::to_string(base) +
+			" multiplier=" + std::to_string(g_3d_resolution_scale) +
+			" requestedEffective=" + std::to_string(effective) +
+			" readback=" + std::to_string(readback));
+	}
+
 
 	HOOK_ORIG_TYPE Unity_Quit_orig;
 	void Unity_Quit_hook(int code) {
@@ -3884,6 +4006,22 @@ namespace
 			"Prism.Rendering.Runtime.dll", "PRISM.Rendering",
 			"RenderManager", "GetResolutionSize", 1
 		);
+		auto UniversalRenderPipelineAsset_set_renderScale_addr = il2cpp_symbols_logged::get_method_pointer(
+			"Unity.RenderPipelines.Universal.Runtime.dll", "UnityEngine.Rendering.Universal",
+			"UniversalRenderPipelineAsset", "set_renderScale", 1
+		);
+		g_urp_asset_get_render_scale = reinterpret_cast<float (*)(void*)>(
+			il2cpp_symbols_logged::get_method_pointer(
+				"Unity.RenderPipelines.Universal.Runtime.dll", "UnityEngine.Rendering.Universal",
+				"UniversalRenderPipelineAsset", "get_renderScale", 0
+			)
+		);
+		g_urp_get_asset = reinterpret_cast<void* (*)()>(
+			il2cpp_symbols_logged::get_method_pointer(
+				"Unity.RenderPipelines.Universal.Runtime.dll", "UnityEngine.Rendering.Universal",
+				"UniversalRenderPipeline", "get_asset", 0
+			)
+		);
 		auto LiveMVOverlayView_UpdateLyrics_addr = il2cpp_symbols::get_method_pointer(
 			"PRISM.Interactions.Live.dll", "PRISM.Interactions.Live",
 			"LiveMVOverlayView", "UpdateLyrics", 1
@@ -4095,6 +4233,12 @@ namespace
 
 		auto set_fps_addr = il2cpp_symbols_logged::il2cpp_resolve_icall("UnityEngine.Application::set_targetFrameRate(System.Int32)");
 		auto set_vsync_count_addr = il2cpp_symbols_logged::il2cpp_resolve_icall("UnityEngine.QualitySettings::set_vSyncCount(System.Int32)");
+		g_get_target_fps = reinterpret_cast<int (*)()>(
+			il2cpp_symbols_logged::il2cpp_resolve_icall("UnityEngine.Application::get_targetFrameRate()")
+		);
+		g_get_vsync_count = reinterpret_cast<int (*)()>(
+			il2cpp_symbols_logged::il2cpp_resolve_icall("UnityEngine.QualitySettings::get_vSyncCount()")
+		);
 		auto Unity_Quit_addr = il2cpp_symbols_logged::il2cpp_resolve_icall("UnityEngine.Application::Quit(System.Int32)");
 
 
@@ -4222,7 +4366,8 @@ namespace
 		}
 		ADD_HOOK_1(StoryExtensions_IsLocked);
 		ADD_HOOK(LocalizationManager_GetTextOrNull, "LocalizationManager_GetTextOrNull at %p");
-		ADD_HOOK(GetResolutionSize, "GetResolutionSize at %p");
+		ADD_HOOK(GetResolutionSize, "GetResolutionSize legacy at %p");
+		ADD_HOOK(UniversalRenderPipelineAsset_set_renderScale, "UniversalRenderPipelineAsset.set_renderScale at %p");
 		ADD_HOOK(AssetBundle_LoadAsset, "AssetBundle_LoadAsset at %p");
 		ADD_HOOK(LiveMVOverlayView_UpdateLyrics, "LiveMVOverlayView_UpdateLyrics at %p");
 		ADD_HOOK(TimelineController_SetLyric, "TimelineController_SetLyric at %p");
@@ -4281,6 +4426,16 @@ namespace
 		ADD_HOOK(set_vsync_count, "set_vsync_count at %p");
 		ADD_HOOK(Unity_Quit, "Unity_Quit at %p");
 
+		// Snapshot the game's current values before applying configured overrides.
+		if (g_get_target_fps) {
+			g_game_requested_fps.store(g_get_target_fps(), std::memory_order_relaxed);
+		}
+		if (g_get_vsync_count) {
+			g_game_requested_vsync.store(g_get_vsync_count(), std::memory_order_relaxed);
+		}
+		ApplyPerformanceSettingsNow();
+		InitializeAndApplyUrpRenderScale();
+
 		ADD_HOOK(LiveMVStartData_ctor, "LiveMVStartData_ctor at %p");
 		ADD_HOOK_1(LiveStartDataExtensions_PreLoadAsync);
 
@@ -4317,6 +4472,44 @@ namespace
 		const auto gameVersionInfo = getGameVersions();
 		wprintf(L"Plugin Loaded - Game Version: %ls, Resource Version: %ls\n", gameVersionInfo.gameVersion.c_str(), gameVersionInfo.resourceVersion.c_str());
 	}
+}
+
+void request_apply_3d_resolution_scale() {
+	mainThreadTasks.push_back([]() {
+		InitializeAndApplyUrpRenderScale();
+		return true;
+	});
+}
+
+void request_apply_performance_settings() {
+	mainThreadTasks.push_back([]() {
+		ApplyPerformanceSettingsNow();
+		return true;
+	});
+}
+
+float runtime_3d_render_scale() {
+	return g_runtime_urp_render_scale.load(std::memory_order_relaxed);
+}
+
+float game_base_3d_render_scale() {
+	return g_game_base_urp_render_scale.load(std::memory_order_relaxed);
+}
+
+int runtime_target_fps() {
+	return g_runtime_fps.load(std::memory_order_relaxed);
+}
+
+int runtime_vsync_count() {
+	return g_runtime_vsync.load(std::memory_order_relaxed);
+}
+
+int game_requested_target_fps() {
+	return g_game_requested_fps.load(std::memory_order_relaxed);
+}
+
+int game_requested_vsync_count() {
+	return g_game_requested_vsync.load(std::memory_order_relaxed);
 }
 
 void uninit_hook()

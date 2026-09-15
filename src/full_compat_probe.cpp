@@ -323,6 +323,9 @@ namespace
             {"PRISM.Legacy.dll", "PRISM.Domain", "StoryExtensions", "IsLocked", 1},
             {"PRISM.Legacy.dll", "ENTERPRISE.Localization", "LocalizationManager", "GetTextOrNull", 2},
             {"Prism.Rendering.Runtime.dll", "PRISM.Rendering", "RenderManager", "GetResolutionSize", 1},
+            {"Unity.RenderPipelines.Universal.Runtime.dll", "UnityEngine.Rendering.Universal", "UniversalRenderPipelineAsset", "get_renderScale", 0},
+            {"Unity.RenderPipelines.Universal.Runtime.dll", "UnityEngine.Rendering.Universal", "UniversalRenderPipelineAsset", "set_renderScale", 1},
+            {"Unity.RenderPipelines.Universal.Runtime.dll", "UnityEngine.Rendering.Universal", "UniversalRenderPipeline", "get_asset", 0},
             {"PRISM.Interactions.Live.dll", "PRISM.Interactions.Live", "LiveMVOverlayView", "UpdateLyrics", 1},
             {"PRISM.Legacy.dll", "PRISM", "TimelineController", "SetLyric", 1},
             {"PRISM.Legacy.dll", "PRISM", "CameraController", "get_BaseCamera", 0},
@@ -373,7 +376,9 @@ namespace
 
         static constexpr const char* icalls[] = {
             "UnityEngine.Application::set_targetFrameRate(System.Int32)",
+            "UnityEngine.Application::get_targetFrameRate()",
             "UnityEngine.QualitySettings::set_vSyncCount(System.Int32)",
+            "UnityEngine.QualitySettings::get_vSyncCount()",
             "UnityEngine.Application::Quit(System.Int32)",
         };
         for (const auto* icall : icalls)

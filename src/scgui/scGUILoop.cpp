@@ -486,6 +486,77 @@ namespace SCGUILoop {
 			ImGui::SameLine();
 			HELP_TOOLTIP("(?)", "阅读故事内容时会上传故事ID，理论上可追查非法数据。\nStory id will be uploaded when reading, and the invalid data can be tracked technically.");
 
+			if (ImGui::CollapsingHeader("Performance Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Text("Frame Rate Limit");
+				ImGui::SameLine();
+				HELP_TOOLTIP("(?)", "Game = 跟随游戏自身的 targetFrameRate。\n选择其他预设或自定义数值时，会覆盖 Unity Application.targetFrameRate。\n启用 VSync 后，桌面端实际帧率还可能受到显示器刷新率 / vSyncCount 限制。\n\nGame = follow the game's own targetFrameRate.\nOtherwise the selected/custom value overrides Unity Application.targetFrameRate.\nWhen VSync is enabled, desktop frame pacing can be limited by display refresh rate / vSyncCount instead.");
+				if (ImGui::Button("Game##fps")) {
+					g_max_fps = -1;
+					request_apply_performance_settings();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("30##fps")) {
+					g_max_fps = 30;
+					request_apply_performance_settings();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("60##fps")) {
+					g_max_fps = 60;
+					request_apply_performance_settings();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("120##fps")) {
+					g_max_fps = 120;
+					request_apply_performance_settings();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("144##fps")) {
+					g_max_fps = 144;
+					request_apply_performance_settings();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("240##fps")) {
+					g_max_fps = 240;
+					request_apply_performance_settings();
+				}
+
+				ImGui::SetNextItemWidth(100.0f);
+				ImGui::InputInt("Max FPS (-1 = game)", &g_max_fps);
+				if (g_max_fps < -1) g_max_fps = -1;
+				ImGui::SameLine();
+				if (ImGui::Button("Apply FPS/VSync")) {
+					request_apply_performance_settings();
+				}
+
+				ImGui::Text("VSync");
+				ImGui::SameLine();
+				HELP_TOOLTIP("(?)", "Game = 跟随游戏自身的 vSyncCount。\nOff = 关闭垂直同步，此时 targetFrameRate 作为 Unity 的主要帧率限制。\n1/2 = 按对应的 vSyncCount 与显示器刷新率同步。\n\nGame = follow the game's own vSyncCount.\nOff = targetFrameRate is the active Unity frame limiter.\n1/2 = synchronize to display refresh using the corresponding vSyncCount.");
+				if (ImGui::Button("Game##vsync")) {
+					g_vsync_count = -1;
+					request_apply_performance_settings();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Off##vsync")) {
+					g_vsync_count = 0;
+					request_apply_performance_settings();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("1##vsync")) {
+					g_vsync_count = 1;
+					request_apply_performance_settings();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("2##vsync")) {
+					g_vsync_count = 2;
+					request_apply_performance_settings();
+				}
+
+				ImGui::Text("Runtime targetFrameRate: %d (game requested: %d)",
+					runtime_target_fps(), game_requested_target_fps());
+				ImGui::Text("Runtime vSyncCount: %d (game requested: %d)",
+					runtime_vsync_count(), game_requested_vsync_count());
+			}
+
 			if (ImGui::CollapsingHeader("Resolution Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
 				ImGui::Text("Window Resolution Settings");
 
@@ -534,12 +605,32 @@ namespace SCGUILoop {
 
 				ImGui::Separator();
 
-				INPUT_AND_SLIDER_FLOAT("3D Resolution Scale", &g_3d_resolution_scale, 0.1f, 5.0f);
-				if (g_3d_resolution_scale == 1.0f) {
-					SCCamera::currRenderResolution.x = SCGUIData::screenW;
-					SCCamera::currRenderResolution.y = SCGUIData::screenH;
+				ImGui::Text("3D Render Scale (SCSP 2.17 URP)");
+				ImGui::SameLine();
+				HELP_TOOLTIP("(?)", "控制 UniversalRenderPipelineAsset.renderScale，这是 SCSP 2.17 正常 3D MV 实际使用的渲染缩放路径。\n该数值会作为倍率乘到游戏自身的 URP 基础 renderScale 上。\nSCSP 2.17 / URP 的有效 renderScale 范围为 0.1-2.0，因此超过 2.0 的最终值会被限制为 2.0。\n旧的 RenderManager.GetResolutionSize hook 仅保留用于诊断。\n\nControls UniversalRenderPipelineAsset.renderScale, the path used by normal SCSP 2.17 3D MV rendering.\nThe value is applied as a multiplier over the game's base URP scale.\nSCSP 2.17 / URP accepts renderScale in the range 0.1-2.0, so higher effective values are clamped to 2.0.\nThe legacy RenderManager.GetResolutionSize hook is diagnostic-only.");
+				INPUT_AND_SLIDER_FLOAT("3D Resolution Scale", &g_3d_resolution_scale, 0.1f, 4.0f);
+				if (!(g_3d_resolution_scale > 0.0f)) g_3d_resolution_scale = 1.0f;
+				if (ImGui::Button("Apply 3D Scale")) {
+					request_apply_3d_resolution_scale();
 				}
-				ImGui::Text("Current 3D Resolution: %d, %d", SCCamera::currRenderResolution.x, SCCamera::currRenderResolution.y);
+				ImGui::SameLine();
+				if (ImGui::Button("1.0x##3dscale")) {
+					g_3d_resolution_scale = 1.0f;
+					request_apply_3d_resolution_scale();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("1.5x##3dscale")) {
+					g_3d_resolution_scale = 1.5f;
+					request_apply_3d_resolution_scale();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("2.0x##3dscale")) {
+					g_3d_resolution_scale = 2.0f;
+					request_apply_3d_resolution_scale();
+				}
+				const float baseScale = game_base_3d_render_scale();
+				const float effectiveScale = runtime_3d_render_scale();
+				ImGui::Text("Game base URP scale: %.3f | Runtime effective scale: %.3f", baseScale, effectiveScale);
 			}
 
 			if (ImGui::CollapsingHeader("Camera Info", ImGuiTreeNodeFlags_DefaultOpen)) {
