@@ -327,7 +327,7 @@ GUI 中可以保存/编辑各 Slot 的偶像与服装数据。
 
 Dump 新原文后，请优先向 [SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData) 提交数据/翻译，而不是把个人 Dump、日志或账号相关文件提交到本插件仓库。
 
-翻译贡献者和翻译 Agent 请优先遵循 SCSPTranslationData 的 [AGENTS.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/AGENTS.md) 与 [CONTRIBUTING.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/CONTRIBUTING.md)。翻译仓库已经提供公开术语/姓名表、Translation Memory 生成器、统一 QA、Agent batch/result schema 与 CI；批量翻译不需要依赖任何私人工作环境。
+翻译贡献者和翻译 Agent 请优先遵循 SCSPTranslationData 的 [AGENTS.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/AGENTS.md) 与 [CONTRIBUTING.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/CONTRIBUTING.md)。翻译仓库已经提供公开术语/姓名表、Translation Memory、统一 QA、Agent batch/result schema、社区质量 Backlog 与 CI；GitHub 侧还提供翻译质量 / source update Issue 表单和 PR 模板，批量翻译不需要依赖任何私人工作环境。
 
 ## 纹理提取和替换
 
