@@ -836,26 +836,142 @@ namespace
 
 	std::filesystem::path dumpBasePath("dumps");
 
+	std::string repairLegacyJsonDumpText(const std::string& raw) {
+		std::string repaired;
+		repaired.reserve(raw.size() + 32);
+
+		bool inString = false;
+		bool escaped = false;
+		for (size_t i = 0; i < raw.size(); ++i) {
+			const auto ch = raw[i];
+
+			if (!inString) {
+				if (ch == '"') {
+					inString = true;
+					repaired.push_back(ch);
+					continue;
+				}
+				if (ch == ',') {
+					size_t next = i + 1;
+					while (next < raw.size() &&
+						(raw[next] == ' ' || raw[next] == '\t' || raw[next] == '\r' || raw[next] == '\n')) {
+						++next;
+					}
+					if (next < raw.size() && (raw[next] == ']' || raw[next] == '}')) {
+						continue;
+					}
+				}
+				repaired.push_back(ch);
+				continue;
+			}
+
+			if (escaped) {
+				repaired.push_back(ch);
+				escaped = false;
+				continue;
+			}
+			if (ch == '\\') {
+				repaired.push_back(ch);
+				escaped = true;
+				continue;
+			}
+			if (ch == '\r') {
+				repaired += "\\r";
+				continue;
+			}
+			if (ch == '\n') {
+				repaired += "\\n";
+				continue;
+			}
+			if (ch != '"') {
+				repaired.push_back(ch);
+				continue;
+			}
+
+			size_t next = i + 1;
+			while (next < raw.size() &&
+				(raw[next] == ' ' || raw[next] == '\t' || raw[next] == '\r' || raw[next] == '\n')) {
+				++next;
+			}
+			const auto nextCh = next < raw.size() ? raw[next] : '\0';
+			if (nextCh == '\0' || nextCh == ':' || nextCh == ',' || nextCh == '}' || nextCh == ']') {
+				repaired.push_back(ch);
+				inString = false;
+			}
+			else {
+				repaired += "\\\"";
+			}
+		}
+
+		return repaired;
+	}
+
+	bool normalizeJsonDumpText(Il2CppString* source, std::string& normalized, std::string& error) {
+		if (!source) {
+			error = "decoded string is null";
+			return false;
+		}
+
+		const std::wstring sourceWstr(source->start_char, source->start_char + source->length);
+		const auto raw = utility::conversions::to_utf8string(sourceWstr);
+		try {
+			nlohmann::json::parse(raw);
+			normalized = raw;
+			return true;
+		}
+		catch (...) {
+		}
+
+		const auto repaired = repairLegacyJsonDumpText(raw);
+		try {
+			const auto parsed = nlohmann::json::parse(repaired);
+			normalized = parsed.dump();
+			return true;
+		}
+		catch (const std::exception& e) {
+			error = e.what();
+			return false;
+		}
+	}
+
+	bool writeNormalizedJsonBytesData(void* dataBytes, const std::filesystem::path& outputPath,
+		const std::wstring& displayName) {
+		if (!dataBytes) {
+			printf("dump %ls failed: DataFile.GetBytes returned null.\n", displayName.c_str());
+			return false;
+		}
+
+		auto newStr = bytesToIl2cppString(dataBytes);
+		std::string normalized;
+		std::string error;
+		if (!normalizeJsonDumpText(newStr, normalized, error)) {
+			printf("dump %ls failed: invalid JSON after normalization: %s\n",
+				displayName.c_str(), error.c_str());
+			return false;
+		}
+
+		std::ofstream dumpFile(outputPath, std::ios::out | std::ios::binary);
+		if (!dumpFile) {
+			printf("dump %ls failed: cannot open %ls.\n", displayName.c_str(), outputPath.c_str());
+			return false;
+		}
+		dumpFile.write(normalized.data(), static_cast<std::streamsize>(normalized.size()));
+		dumpFile.close();
+		if (!dumpFile) {
+			printf("dump %ls failed while writing %ls.\n", displayName.c_str(), outputPath.c_str());
+			return false;
+		}
+
+		printf("dump %ls success. (%ls)\n", displayName.c_str(), outputPath.c_str());
+		return true;
+	}
+
 	// 调用之前检查 DataFile_IsKeyExist
-	void fmtAndDumpJsonBytesData(const std::wstring& dumpName) {
+	bool fmtAndDumpJsonBytesData(const std::wstring& dumpName) {
 		const auto dumpNameIl = il2cpp_symbols::NewWStr(dumpName);
 		auto dataBytes = (reinterpret_cast<void* (*)(Il2CppString*)>HOOK_GET_ORIG(DataFile_GetBytes))(dumpNameIl);
-		auto newStr = bytesToIl2cppString(dataBytes);
-		auto writeWstr = std::wstring(newStr->start_char);
-		const std::wstring searchStr = L"\r";
-		const std::wstring replaceStr = L"\\r";
-		size_t pos = writeWstr.find(searchStr);
-		while (pos != std::wstring::npos) {
-			writeWstr.replace(pos, 1, replaceStr);
-			pos = writeWstr.find(searchStr, pos + replaceStr.length());
-		}
-		if (writeWstr.ends_with(L",]")) {  // 代哥的 Json 就是不一样
-			writeWstr.erase(writeWstr.length() - 2, 1);
-		}
 		const auto dumpLocalFilePath = dumpBasePath / SCLocal::getFilePathByName(dumpName, true, dumpBasePath);
-		std::ofstream dumpFile(dumpLocalFilePath, std::ofstream::out);
-		dumpFile << utility::conversions::to_utf8string(writeWstr).c_str();
-		printf("dump %ls success. (%ls)\n", dumpName.c_str(), dumpLocalFilePath.c_str());
+		return writeNormalizedJsonBytesData(dataBytes, dumpLocalFilePath, dumpName);
 	}
 
 	int dumpScenarioDataById(const std::string& sid) {
@@ -877,8 +993,9 @@ namespace
 					break;
 				}
 			}
-			fmtAndDumpJsonBytesData(dumpName);
-			dumpedCount++;
+			if (fmtAndDumpJsonBytesData(dumpName)) {
+				dumpedCount++;
+			}
 			i++;
 		}
 		return dumpedCount;
@@ -894,8 +1011,7 @@ namespace
 		}
 		auto searchNameStr = il2cpp_string_new(searchName.c_str());
 		if (!DataFile_IsKeyExist(searchNameStr)) return false;
-		fmtAndDumpJsonBytesData(utility::conversions::to_string_t(searchName));
-		return true;
+		return fmtAndDumpJsonBytesData(utility::conversions::to_string_t(searchName));
 	}
 
 	void dumpByteArray(const std::wstring& tag, const std::wstring& name, void* bytes) {
@@ -2299,21 +2415,7 @@ namespace
 				if (!std::filesystem::is_directory(basePath)) {
 					std::filesystem::create_directories(basePath);
 				}
-				auto newStr = bytesToIl2cppString(ret);
-				std::ofstream fileDump(fileName, std::ofstream::out);
-				auto writeWstr = std::wstring(newStr->start_char);
-
-				const std::wstring searchStr = L"\r";
-				const std::wstring replaceStr = L"\\r";
-				size_t pos = writeWstr.find(searchStr);
-				while (pos != std::wstring::npos) {
-					writeWstr.replace(pos, 1, replaceStr);
-					pos = writeWstr.find(searchStr, pos + replaceStr.length());
-				}
-
-				fileDump << utility::conversions::to_utf8string(writeWstr).c_str();
-				fileDump.close();
-				printf("Auto dump: %ls\n", fileName.c_str());
+				writeNormalizedJsonBytesData(ret, fileName, pathStr);
 			}
 		}
 		return ret;
