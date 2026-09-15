@@ -327,7 +327,7 @@ GUI 中可以保存/编辑各 Slot 的偶像与服装数据。
 
 Dump 新原文后，请优先向 [SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData) 提交数据/翻译，而不是把个人 Dump、日志或账号相关文件提交到本插件仓库。
 
-翻译贡献者和翻译 Agent 请优先遵循 SCSPTranslationData 的 [AGENTS.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/AGENTS.md) 与 [CONTRIBUTING.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/CONTRIBUTING.md)。翻译仓库已经提供公开术语/姓名表、Translation Memory、统一 QA、Agent batch/result schema、社区质量 Backlog 与 CI，并通过 current-source gate 和 strict exact-source canonicalization 防止已验证 source-key 数据重新积累可机械闭合的质量债务；GitHub 侧还提供翻译质量 / source update Issue 表单和 PR 模板，批量翻译不需要依赖任何私人工作环境。
+翻译贡献者和翻译 Agent 请优先遵循 SCSPTranslationData 的 [AGENTS.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/AGENTS.md) 与 [CONTRIBUTING.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/CONTRIBUTING.md)。翻译仓库已经公开 SCSP 2.17.0 主 `localizetext` 的 5,631 tables / 138,036 source rows current-source snapshot、可验证 hash 与独立 coverage audit（当前 138,036/138,036 mapped、0 missing、0 actionable），同时保留术语/姓名表、Translation Memory、统一 QA、Agent batch/result schema、社区质量 Backlog、strict exact-source canonicalization 与 CI；GitHub 侧还提供翻译质量 / source update Issue 表单和 PR 模板，批量翻译与当前 localify 原文核验不需要依赖任何私人工作环境。
 
 ## 纹理提取和替换
 

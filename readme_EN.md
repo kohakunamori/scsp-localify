@@ -196,7 +196,7 @@ git submodule update --init --recursive
 
 See [kohakunamori/SCSPTranslationData](https://github.com/kohakunamori/SCSPTranslationData) for translation usage and contribution instructions.
 
-Translation contributors and translation agents should follow the public [AGENTS.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/AGENTS.md) and [CONTRIBUTING.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/CONTRIBUTING.md). The translation repository now provides public terminology/name data, translation-memory generation, repository QA, agent batch/result schemas, a community quality backlog, CI, a current-source quality gate, strict exact-source canonicalization, and dedicated translation/source-update Issue forms and PR templates without depending on private environments.
+Translation contributors and translation agents should follow the public [AGENTS.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/AGENTS.md) and [CONTRIBUTING.md](https://github.com/kohakunamori/SCSPTranslationData/blob/TransData/CONTRIBUTING.md). The translation repository now publishes the SCSP 2.17.0 main `localizetext` current-source snapshot (5,631 tables / 138,036 source rows), deterministic hashes, and a standalone coverage audit (currently 138,036/138,036 mapped, 0 missing, 0 actionable), together with public terminology/name data, translation-memory generation, repository QA, agent batch/result schemas, a community quality backlog, strict exact-source canonicalization, CI, and dedicated translation/source-update Issue forms and PR templates without depending on private environments.
 
 ## Configuration
 
