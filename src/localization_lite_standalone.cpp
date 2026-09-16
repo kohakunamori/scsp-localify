@@ -32,10 +32,23 @@ namespace
     {
         Il2CppString* unique_id;
         Il2CppString* text;
+        Il2CppString* talker_name;
+        Il2CppString* display_talker_name;
     };
 
     static_assert(offsetof(DramaSubtitlePlayableBehaviour, unique_id) == 0x10);
     static_assert(offsetof(DramaSubtitlePlayableBehaviour, text) == 0x18);
+    static_assert(offsetof(DramaSubtitlePlayableBehaviour, talker_name) == 0x20);
+    static_assert(offsetof(DramaSubtitlePlayableBehaviour, display_talker_name) == 0x28);
+
+    struct DramaTranslation
+    {
+        std::string text;
+        std::string talker_source;
+        std::string talker_text;
+        std::string display_talker_source;
+        std::string display_talker_text;
+    };
 
     struct MethodInfo
     {
@@ -112,7 +125,7 @@ namespace
     std::unordered_map<std::string, std::unordered_map<int, std::string>> primary_translations;
     SCStringMap::Dictionary exact_translations;
     SCStringMap::Dictionary lyric_translations;
-    std::unordered_map<std::string, std::string> drama_translations;
+    std::unordered_map<std::string, DramaTranslation> drama_translations;
     std::atomic_uint32_t primary_hits{0};
     std::atomic_uint32_t exact_hits{0};
     std::atomic_uint32_t lyric_hits{0};
@@ -263,6 +276,8 @@ namespace
 
         size_t count = 0;
         size_t duplicate_count = 0;
+        size_t talker_count = 0;
+        size_t display_talker_count = 0;
         for (const auto& entry : entries->GetArray())
         {
             if (!entry.IsObject()) continue;
@@ -271,13 +286,56 @@ namespace
             const auto text = entry.FindMember("text");
             if (uid == entry.MemberEnd() || source == entry.MemberEnd() || text == entry.MemberEnd() ||
                 !uid->value.IsString() || !source->value.IsString() || !text->value.IsString()) continue;
+
+            DramaTranslation translation;
+            translation.text = text->value.GetString();
+
+            const auto talker_source = entry.FindMember("talkerName");
+            const auto talker_text = entry.FindMember("talkerText");
+            if (talker_text != entry.MemberEnd())
+            {
+                if (talker_source != entry.MemberEnd() &&
+                    talker_source->value.IsString() && talker_text->value.IsString())
+                {
+                    translation.talker_source = talker_source->value.GetString();
+                    translation.talker_text = talker_text->value.GetString();
+                    if (translation.talker_text != translation.talker_source) ++talker_count;
+                }
+                else
+                {
+                    log_line("drama.json talkerText requires string talkerName; entry rejected");
+                    continue;
+                }
+            }
+
+            const auto display_source = entry.FindMember("displayTalkerName");
+            const auto display_text = entry.FindMember("displayTalkerText");
+            if (display_text != entry.MemberEnd())
+            {
+                if (display_source != entry.MemberEnd() &&
+                    display_source->value.IsString() && display_text->value.IsString())
+                {
+                    translation.display_talker_source = display_source->value.GetString();
+                    translation.display_talker_text = display_text->value.GetString();
+                    if (translation.display_talker_text != translation.display_talker_source)
+                        ++display_talker_count;
+                }
+                else
+                {
+                    log_line("drama.json displayTalkerText requires string displayTalkerName; entry rejected");
+                    continue;
+                }
+            }
+
             auto key = make_drama_key(uid->value.GetString(), source->value.GetString());
             if (drama_translations.contains(key)) ++duplicate_count;
-            drama_translations[std::move(key)] = text->value.GetString();
+            drama_translations[std::move(key)] = std::move(translation);
             ++count;
         }
         log_line("drama translations loaded: entries=" + std::to_string(count) +
             " keys=" + std::to_string(drama_translations.size()) +
+            " talker=" + std::to_string(talker_count) +
+            " displayTalker=" + std::to_string(display_talker_count) +
             " duplicateKeys=" + std::to_string(duplicate_count));
         return drama_translations.size();
     }
@@ -546,18 +604,70 @@ namespace
                 const auto unique_id = il2cpp_to_utf8(behaviour->unique_id);
                 const auto source = il2cpp_to_utf8(behaviour->text);
                 const auto it = drama_translations.find(make_drama_key(unique_id, source));
-                if (it != drama_translations.end() && it->second != source)
+                if (it != drama_translations.end())
                 {
-                    if (auto* replacement = il2cpp_string_new(it->second.c_str()))
+                    const auto& translation = it->second;
+                    bool text_changed = false;
+                    bool talker_changed = false;
+                    bool display_talker_changed = false;
+
+                    if (translation.text != source)
                     {
-                        il2cpp_gc_wbarrier_set_field(
-                            reinterpret_cast<Il2CppObject*>(behaviour),
-                            reinterpret_cast<void**>(&behaviour->text), replacement);
+                        if (auto* replacement = il2cpp_string_new(translation.text.c_str()))
+                        {
+                            il2cpp_gc_wbarrier_set_field(
+                                reinterpret_cast<Il2CppObject*>(behaviour),
+                                reinterpret_cast<void**>(&behaviour->text), replacement);
+                            text_changed = true;
+                        }
+                    }
+
+                    if (!translation.talker_text.empty() && behaviour->talker_name)
+                    {
+                        const auto current_talker = il2cpp_to_utf8(behaviour->talker_name);
+                        if (current_talker == translation.talker_source &&
+                            current_talker != translation.talker_text)
+                        {
+                            if (auto* replacement = il2cpp_string_new(translation.talker_text.c_str()))
+                            {
+                                il2cpp_gc_wbarrier_set_field(
+                                    reinterpret_cast<Il2CppObject*>(behaviour),
+                                    reinterpret_cast<void**>(&behaviour->talker_name), replacement);
+                                talker_changed = true;
+                            }
+                        }
+                    }
+
+                    if (!translation.display_talker_text.empty() && behaviour->display_talker_name)
+                    {
+                        const auto current_display_talker =
+                            il2cpp_to_utf8(behaviour->display_talker_name);
+                        if (current_display_talker == translation.display_talker_source &&
+                            current_display_talker != translation.display_talker_text)
+                        {
+                            if (auto* replacement =
+                                il2cpp_string_new(translation.display_talker_text.c_str()))
+                            {
+                                il2cpp_gc_wbarrier_set_field(
+                                    reinterpret_cast<Il2CppObject*>(behaviour),
+                                    reinterpret_cast<void**>(&behaviour->display_talker_name),
+                                    replacement);
+                                display_talker_changed = true;
+                            }
+                        }
+                    }
+
+                    if (text_changed || talker_changed || display_talker_changed)
+                    {
                         const auto hit = ++drama_hits;
                         if (hit <= 40)
                         {
                             log_line("drama hit #" + std::to_string(hit) +
                                 " uid=" + unique_id +
+                                " text=" + std::to_string(text_changed ? 1 : 0) +
+                                " talker=" + std::to_string(talker_changed ? 1 : 0) +
+                                " displayTalker=" +
+                                    std::to_string(display_talker_changed ? 1 : 0) +
                                 " source=" + source.substr(0, 96));
                         }
                     }
