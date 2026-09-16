@@ -105,6 +105,7 @@ namespace
     LyricFn timeline_set_lyric_orig = nullptr;
     UiGetTextFn ui_get_text = nullptr;
     UiSetTextFn ui_set_text = nullptr;
+    UiSetTextFn ui_set_text_orig = nullptr;
     AssetBundleLoadFromFileFn asset_bundle_load_from_file = nullptr;
     AssetBundleLoadAssetFn asset_bundle_load_asset = nullptr;
     TmpGetFontFn tmp_get_font = nullptr;
@@ -128,6 +129,7 @@ namespace
     std::unordered_map<std::string, DramaTranslation> drama_translations;
     std::atomic_uint32_t primary_hits{0};
     std::atomic_uint32_t exact_hits{0};
+    std::atomic_uint32_t exact_dynamic_hits{0};
     std::atomic_uint32_t lyric_hits{0};
     std::atomic_uint32_t scenario_hits{0};
     std::atomic_uint32_t drama_hits{0};
@@ -485,7 +487,8 @@ namespace
                         std::string preview = original_utf8.substr(0, 96);
                         log_line("local2 hit #" + std::to_string(hit) + " text=" + preview);
                     }
-                    ui_set_text(self, il2cpp_string_new(translated->c_str()));
+                    auto setter = ui_set_text_orig ? ui_set_text_orig : ui_set_text;
+                    setter(self, il2cpp_string_new(translated->c_str()));
                 }
             }
         }
@@ -507,6 +510,31 @@ namespace
             }
         }
         ui_awake_orig(self);
+    }
+
+    void UITextMeshProUGUI_SetText_hook(void* self, Il2CppString* value)
+    {
+        Il2CppString* replacement = value;
+        if (value)
+        {
+            const auto original_utf8 = il2cpp_to_utf8(value);
+            const auto translated = exact_translations.find(original_utf8);
+            if (translated && !translated->empty() && *translated != original_utf8)
+            {
+                if (auto translated_string = il2cpp_string_new(translated->c_str()))
+                {
+                    replacement = translated_string;
+                    const auto hit = ++exact_dynamic_hits;
+                    if (hit <= 40)
+                    {
+                        std::string preview = original_utf8.substr(0, 96);
+                        log_line("local2 dynamic hit #" + std::to_string(hit) + " text=" + preview);
+                    }
+                }
+            }
+        }
+
+        ui_set_text_orig(self, replacement);
     }
 
     Il2CppString* translate_lyric_or_original(Il2CppString* original, const char* surface)
@@ -882,9 +910,13 @@ namespace
         const bool primary_ok = install_hook(reinterpret_cast<void*>(localization_method),
             reinterpret_cast<void*>(&LocalizationManager_GetTextOrNull_hook),
             reinterpret_cast<void**>(&localization_get_text_orig), "LocalizationManager.GetTextOrNull");
-        const bool local2_ok = install_hook(reinterpret_cast<void*>(awake_method),
+        const bool local2_awake_ok = install_hook(reinterpret_cast<void*>(awake_method),
             reinterpret_cast<void*>(&UITextMeshProUGUI_Awake_hook),
             reinterpret_cast<void**>(&ui_awake_orig), "UITextMeshProUGUI.Awake");
+        const bool local2_dynamic_ok = install_hook(reinterpret_cast<void*>(set_text_method),
+            reinterpret_cast<void*>(&UITextMeshProUGUI_SetText_hook),
+            reinterpret_cast<void**>(&ui_set_text_orig), "UITextMeshProUGUI.set_text");
+        const bool local2_ok = local2_awake_ok && local2_dynamic_ok;
         const bool live_lyrics_ok = install_hook(reinterpret_cast<void*>(live_mv_update_lyrics_method),
             reinterpret_cast<void*>(&LiveMVOverlayView_UpdateLyrics_hook),
             reinterpret_cast<void**>(&live_mv_update_lyrics_orig), "LiveMVOverlayView.UpdateLyrics");

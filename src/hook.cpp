@@ -2153,6 +2153,28 @@ namespace
 			//printf("%ls\n\n", environment_get_stacktrace()->start_char);
 		}
 		//if(value) value = il2cpp_symbols::NewWStr(std::format(L"(h){}", std::wstring(value->start_char)));
+		if (value) {
+			const std::wstring original(value->start_char);
+			std::string translated;
+			if (SCLocal::getGameUnlocalTrans(original, &translated)) {
+				const auto originalUtf8 = utility::conversions::to_utf8string(original);
+				if (!translated.empty() && translated != originalUtf8) {
+					if (auto localized = il2cpp_string_new(translated.c_str())) {
+						value = localized;
+						static std::atomic<int> dynamicLocal2TraceCount{ 0 };
+						const auto traceIndex =
+							dynamicLocal2TraceCount.fetch_add(1, std::memory_order_relaxed);
+						if (traceIndex < 40) {
+							full_trace(
+								"local2: TMP_Text.set_text #" +
+								std::to_string(traceIndex + 1) +
+								" translated bytes=" + std::to_string(translated.size())
+							);
+						}
+					}
+				}
+			}
+		}
 		if (value && !g_custom_font_path.empty()) {
 			auto replaceFont = getReplaceFont();
 			auto replacementTmpFont = getReplaceTmpFontAsset(replaceFont);
