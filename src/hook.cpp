@@ -4308,8 +4308,7 @@ namespace
 				GetProcAddress(il2cpp_module, "il2cpp_gc_wbarrier_set_field")
 			);
 		full_trace(
-			"drama: mapEntries=" + std::to_string(SCLocal::getDramaTranslationCount()) +
-			" apply=" + std::to_string(DramaSubtitleMixerBehaviour_Apply_addr) +
+			"drama: hook resolve apply=" + std::to_string(DramaSubtitleMixerBehaviour_Apply_addr) +
 			" gcBarrier=" + std::to_string(
 				reinterpret_cast<uintptr_t>(full_il2cpp_gc_wbarrier_set_field)
 			)

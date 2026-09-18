@@ -449,6 +449,10 @@ int __stdcall DllMain(HINSTANCE dllModule, DWORD reason, LPVOID)
 			full_trace("init thread: reloadTransData begin");
 			reloadTransData();
 			full_trace("init thread: reloadTransData done");
+			full_trace(
+				"drama: reload mapEntries=" +
+				std::to_string(SCLocal::getDramaTranslationCount())
+			);
 			if (g_diagnostic_lyrics_lookup_probe) {
 				static const std::wstring probeSource =
 					L"散りばめられた星の光が 静かな夜に煌き出した";
