@@ -2210,6 +2210,36 @@ namespace
 			);
 	}
 
+	HOOK_ORIG_TYPE UITextMeshProUGUI_set_text_orig;
+	void UITextMeshProUGUI_set_text_hook(void* _this, Il2CppString* value) {
+		if (value) {
+			const std::wstring original(value->start_char, value->length);
+			std::string translated;
+			if (SCLocal::getGameUnlocalTrans(original, &translated)) {
+				const auto originalUtf8 = utility::conversions::to_utf8string(original);
+				if (!translated.empty() && translated != originalUtf8) {
+					if (auto localized = il2cpp_string_new(translated.c_str())) {
+						value = localized;
+						static std::atomic<int> dynamicUiLocal2TraceCount{ 0 };
+						const auto traceIndex =
+							dynamicUiLocal2TraceCount.fetch_add(1, std::memory_order_relaxed);
+						if (traceIndex < 80) {
+							auto preview = originalUtf8.substr(0, 120);
+							full_trace(
+								"local2: UITextMeshProUGUI.set_text #" +
+								std::to_string(traceIndex + 1) +
+								" source=" + preview
+							);
+						}
+					}
+				}
+			}
+		}
+		HOOK_CAST_CALL(void, UITextMeshProUGUI_set_text)(
+			_this, value
+			);
+	}
+
 	bool get_NeedsLocalization_func(void* instanceUITextMeshProUGUI) {
 		return false;
 		/*
@@ -4082,6 +4112,10 @@ namespace
 			"Unity.TextMeshPro.dll", "TMPro",
 			"TMP_Text", "set_text", 1
 		);
+		const auto UITextMeshProUGUI_set_text_addr = il2cpp_symbols::get_method_pointer(
+			"PRISM.Legacy.dll", "ENTERPRISE.UI",
+			"UITextMeshProUGUI", "set_text", 1
+		);
 		const auto UITextMeshProUGUI_Awake_addr = il2cpp_symbols::get_method_pointer(
 			"PRISM.Legacy.dll", "ENTERPRISE.UI",
 			"UITextMeshProUGUI", "Awake", 0
@@ -4509,6 +4543,7 @@ namespace
 		ADD_HOOK(Unity_set_rotation, "Unity_set_rotation at %p");
 
 		ADD_HOOK(TMP_Text_set_text, "TMP_Text_set_text at %p");
+		ADD_HOOK(UITextMeshProUGUI_set_text, "UITextMeshProUGUI_set_text at %p");
 		ADD_HOOK(UITextMeshProUGUI_Awake, "UITextMeshProUGUI_Awake at %p");
 		ADD_HOOK(ScenarioManager_Init, "ScenarioManager_Init at %p");
 		ADD_HOOK(DataFile_GetBytes, "DataFile_GetBytes at %p");
