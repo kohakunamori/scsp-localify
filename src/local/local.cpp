@@ -9,6 +9,16 @@ namespace SCLocal {
 		SCStringMap::Dictionary lrcTrans{};
 		SCStringMap::Dictionary unLocalTrans{};
 		std::vector<std::pair<std::string, std::string>> dynamicUnLocalTrans{};
+		std::unordered_map<std::string, DramaTranslation> dramaTrans{};
+
+		std::string makeDramaKey(const std::string& uniqueId, const std::string& source) {
+			std::string key;
+			key.reserve(uniqueId.size() + 1 + source.size());
+			key.append(uniqueId);
+			key.push_back('\0');
+			key.append(source);
+			return key;
+		}
 
 		bool numericPlaceholderAt(const std::string& value, size_t pos, int* index = nullptr) {
 			if (pos + 2 >= value.size() || value[pos] != '{' || value[pos + 2] != '}') {
@@ -135,9 +145,84 @@ namespace SCLocal {
 		}
 	}
 
+	void loadDramaTrans() {
+		dramaTrans.clear();
+		try {
+			std::ifstream file(g_localify_base / "drama.json");
+			if (!file.is_open()) {
+				printf("Load drama.json failed: file not found.\n");
+				return;
+			}
+			auto fileData = nlohmann::json::parse(file);
+			const nlohmann::json* entries = nullptr;
+			if (fileData.is_array()) {
+				entries = &fileData;
+			}
+			else if (fileData.is_object() && fileData.contains("entries") && fileData["entries"].is_array()) {
+				entries = &fileData["entries"];
+			}
+			if (!entries) {
+				printf("Load drama.json failed: expected array or entries[].\n");
+				return;
+			}
+
+			size_t duplicateCount = 0;
+			size_t dramaSubtitleCount = 0;
+			size_t sujigakiCount = 0;
+			for (const auto& entry : *entries) {
+				if (!entry.is_object() ||
+					!entry.contains("uniqueId") || !entry["uniqueId"].is_string() ||
+					!entry.contains("source") || !entry["source"].is_string() ||
+					!entry.contains("text") || !entry["text"].is_string()) {
+					continue;
+				}
+
+				DramaTranslation translation;
+				translation.sourceSchema = entry.value("sourceSchema", "");
+				translation.text = entry["text"].get<std::string>();
+				if (entry.contains("talkerName") && entry["talkerName"].is_string()) {
+					translation.talkerSource = entry["talkerName"].get<std::string>();
+				}
+				if (entry.contains("talkerText") && entry["talkerText"].is_string()) {
+					translation.talkerText = entry["talkerText"].get<std::string>();
+				}
+				if (entry.contains("displayTalkerName") && entry["displayTalkerName"].is_string()) {
+					translation.displayTalkerSource = entry["displayTalkerName"].get<std::string>();
+				}
+				if (entry.contains("displayTalkerText") && entry["displayTalkerText"].is_string()) {
+					translation.displayTalkerText = entry["displayTalkerText"].get<std::string>();
+				}
+
+				if (translation.sourceSchema == "DramaSubtitlePlayableAsset") {
+					dramaSubtitleCount++;
+				}
+				else if (translation.sourceSchema == "SujigakiLinePlayableAsset") {
+					sujigakiCount++;
+				}
+
+				auto key = makeDramaKey(
+					entry["uniqueId"].get<std::string>(),
+					entry["source"].get<std::string>()
+				);
+				if (dramaTrans.contains(key)) {
+					duplicateCount++;
+				}
+				dramaTrans[std::move(key)] = std::move(translation);
+			}
+			printf(
+				"%zu items in drama.json loaded (DramaSubtitle=%zu, Sujigaki=%zu, duplicateKeys=%zu).\n",
+				dramaTrans.size(), dramaSubtitleCount, sujigakiCount, duplicateCount
+			);
+		}
+		catch (std::exception& e) {
+			printf("Load drama.json failed: %s\n", e.what());
+		}
+	}
+
 	void loadLocalTrans() {
 		loadLrcTrans();
 		loadUnlocalTrans();
+		loadDramaTrans();
 		localTrans.clear();
 		printf("Loading localify.json...\n");
 		int totalItemCount = 0;
@@ -277,5 +362,21 @@ namespace SCLocal {
 		}
 		return false;
 	}
+	bool getDramaTranslation(
+		const std::string& uniqueId,
+		const std::string& source,
+		DramaTranslation* translation
+	) {
+		if (!translation) return false;
+		const auto it = dramaTrans.find(makeDramaKey(uniqueId, source));
+		if (it == dramaTrans.end()) return false;
+		*translation = it->second;
+		return true;
+	}
+
+	size_t getDramaTranslationCount() {
+		return dramaTrans.size();
+	}
+
 
 }

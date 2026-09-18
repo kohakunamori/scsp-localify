@@ -2451,14 +2451,151 @@ namespace
 		}
 	}
 
+
+	struct FullDramaSubtitlePlayableBehaviour : Il2CppObject {
+		Il2CppString* uniqueId;
+		Il2CppString* text;
+		Il2CppString* talkerName;
+		Il2CppString* displayTalkerName;
+	};
+	static_assert(offsetof(FullDramaSubtitlePlayableBehaviour, uniqueId) == 0x10);
+	static_assert(offsetof(FullDramaSubtitlePlayableBehaviour, text) == 0x18);
+	static_assert(offsetof(FullDramaSubtitlePlayableBehaviour, talkerName) == 0x20);
+	static_assert(offsetof(FullDramaSubtitlePlayableBehaviour, displayTalkerName) == 0x28);
+
+	using Il2CppGcWbarrierSetFieldFn = void (*)(Il2CppObject*, void**, void*);
+	Il2CppGcWbarrierSetFieldFn full_il2cpp_gc_wbarrier_set_field = nullptr;
+
+	std::string ManagedStringUtf8Exact(const Il2CppString* value) {
+		if (!value || value->length <= 0) return {};
+		return utility::conversions::to_utf8string(
+			std::wstring(value->start_char, value->length)
+		);
+	}
+
+	bool TryGetDramaSubtitleBehaviour(
+		void* timelineClip,
+		FullDramaSubtitlePlayableBehaviour** out
+	) {
+		if (!timelineClip || !out) return false;
+		*out = nullptr;
+		__try {
+			auto* playableAsset = *reinterpret_cast<Il2CppObject**>(
+				static_cast<unsigned char*>(timelineClip) + 0x28
+			);
+			if (!playableAsset) return false;
+			auto* behaviour = *reinterpret_cast<FullDramaSubtitlePlayableBehaviour**>(
+				reinterpret_cast<unsigned char*>(playableAsset) + 0x18
+			);
+			if (!behaviour) return false;
+			*out = behaviour;
+			return true;
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER) {
+			return false;
+		}
+	}
+
+	HOOK_ORIG_TYPE DramaSubtitleMixerBehaviour_Apply_orig;
+	void DramaSubtitleMixerBehaviour_Apply_hook(void* _this, void* timelineClip, double time) {
+		if (timelineClip &&
+			full_il2cpp_gc_wbarrier_set_field &&
+			SCLocal::getDramaTranslationCount() > 0) {
+			FullDramaSubtitlePlayableBehaviour* behaviour = nullptr;
+			if (TryGetDramaSubtitleBehaviour(timelineClip, &behaviour) &&
+				behaviour && behaviour->uniqueId && behaviour->text) {
+				const auto uniqueId = ManagedStringUtf8Exact(behaviour->uniqueId);
+				const auto source = ManagedStringUtf8Exact(behaviour->text);
+				SCLocal::DramaTranslation translation;
+				if (SCLocal::getDramaTranslation(uniqueId, source, &translation)) {
+					bool textChanged = false;
+					bool talkerChanged = false;
+					bool displayTalkerChanged = false;
+
+					if (translation.text != source) {
+						if (auto* replacement = il2cpp_string_new(translation.text.c_str())) {
+							full_il2cpp_gc_wbarrier_set_field(
+								reinterpret_cast<Il2CppObject*>(behaviour),
+								reinterpret_cast<void**>(&behaviour->text),
+								replacement
+							);
+							textChanged = true;
+						}
+					}
+
+					if (!translation.talkerText.empty() && behaviour->talkerName) {
+						const auto currentTalker = ManagedStringUtf8Exact(behaviour->talkerName);
+						if (currentTalker == translation.talkerSource &&
+							currentTalker != translation.talkerText) {
+							if (auto* replacement = il2cpp_string_new(translation.talkerText.c_str())) {
+								full_il2cpp_gc_wbarrier_set_field(
+									reinterpret_cast<Il2CppObject*>(behaviour),
+									reinterpret_cast<void**>(&behaviour->talkerName),
+									replacement
+								);
+								talkerChanged = true;
+							}
+						}
+					}
+
+					if (!translation.displayTalkerText.empty() && behaviour->displayTalkerName) {
+						const auto currentDisplayTalker =
+							ManagedStringUtf8Exact(behaviour->displayTalkerName);
+						if (currentDisplayTalker == translation.displayTalkerSource &&
+							currentDisplayTalker != translation.displayTalkerText) {
+							if (auto* replacement =
+								il2cpp_string_new(translation.displayTalkerText.c_str())) {
+								full_il2cpp_gc_wbarrier_set_field(
+									reinterpret_cast<Il2CppObject*>(behaviour),
+									reinterpret_cast<void**>(&behaviour->displayTalkerName),
+									replacement
+								);
+								displayTalkerChanged = true;
+							}
+						}
+					}
+
+					static std::atomic<int> dramaHitCount{ 0 };
+					const auto hitIndex =
+						dramaHitCount.fetch_add(1, std::memory_order_relaxed);
+					if (hitIndex < 80) {
+						full_trace(
+							"drama: hit #" + std::to_string(hitIndex + 1) +
+							" uid=" + uniqueId +
+							" schema=" + translation.sourceSchema +
+							" text=" + std::to_string(textChanged ? 1 : 0) +
+							" talker=" + std::to_string(talkerChanged ? 1 : 0) +
+							" displayTalker=" + std::to_string(displayTalkerChanged ? 1 : 0)
+						);
+					}
+				}
+				else {
+					static std::atomic<int> dramaMissCount{ 0 };
+					const auto missIndex =
+						dramaMissCount.fetch_add(1, std::memory_order_relaxed);
+					if (missIndex < 40) {
+						full_trace(
+							"drama: miss #" + std::to_string(missIndex + 1) +
+							" uid=" + uniqueId +
+							" sourceChars=" + std::to_string(behaviour->text->length)
+						);
+					}
+				}
+			}
+		}
+		return HOOK_CAST_CALL(void, DramaSubtitleMixerBehaviour_Apply)(_this, timelineClip, time);
+	}
+
 	HOOK_ORIG_TYPE ScenarioManager_Init_orig;
 	void* ScenarioManager_Init_hook(void* retstr, void* _this, Il2CppString* scrName) {
 		static std::atomic<int> scenarioInitTraceCount{ 0 };
 		const auto traceIndex =
 			scenarioInitTraceCount.fetch_add(1, std::memory_order_relaxed);
-		if (traceIndex < 20 && scrName) {
+		if (traceIndex < 40 && scrName) {
+			const auto scenarioName = ManagedStringUtf8Exact(scrName);
 			full_trace(
 				"scenario: init #" + std::to_string(traceIndex + 1) +
+				" name=" + scenarioName +
 				" chars=" + std::to_string(scrName->length)
 			);
 		}
@@ -4162,6 +4299,21 @@ namespace
 			"PRISM.Legacy.dll", "PRISM",
 			"DataFile", "GetBytes", 1
 		);
+		auto DramaSubtitleMixerBehaviour_Apply_addr = il2cpp_symbols::get_method_pointer(
+			"PRISM.Interactions.Drama.dll", "PRISM.Interactions.Drama",
+			"DramaSubtitleMixerBehaviour", "Apply", 2
+			);
+		full_il2cpp_gc_wbarrier_set_field =
+			reinterpret_cast<Il2CppGcWbarrierSetFieldFn>(
+				GetProcAddress(il2cpp_module, "il2cpp_gc_wbarrier_set_field")
+			);
+		full_trace(
+			"drama: mapEntries=" + std::to_string(SCLocal::getDramaTranslationCount()) +
+			" apply=" + std::to_string(DramaSubtitleMixerBehaviour_Apply_addr) +
+			" gcBarrier=" + std::to_string(
+				reinterpret_cast<uintptr_t>(full_il2cpp_gc_wbarrier_set_field)
+			)
+		);
 		DataFile_IsKeyExist = reinterpret_cast<decltype(DataFile_IsKeyExist)>(
 			il2cpp_symbols::get_method_pointer(
 				"PRISM.Legacy.dll", "PRISM",
@@ -4562,6 +4714,7 @@ namespace
 		ADD_HOOK(AssetBundle_LoadAsset, "AssetBundle_LoadAsset at %p");
 		ADD_HOOK(LiveMVOverlayView_UpdateLyrics, "LiveMVOverlayView_UpdateLyrics at %p");
 		ADD_HOOK(TimelineController_SetLyric, "TimelineController_SetLyric at %p");
+		ADD_HOOK(DramaSubtitleMixerBehaviour_Apply, "DramaSubtitleMixerBehaviour_Apply at %p");
 		ADD_HOOK(get_baseCamera, "get_baseCamera at %p");
 		ADD_HOOK(Unity_get_position, "Unity_get_position at %p");
 		ADD_HOOK(Unity_set_position, "Unity_set_position at %p");
