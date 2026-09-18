@@ -8,6 +8,99 @@ namespace SCLocal {
 		std::unordered_map<std::string, std::unordered_map<int, std::string>> localTrans{};
 		SCStringMap::Dictionary lrcTrans{};
 		SCStringMap::Dictionary unLocalTrans{};
+		std::vector<std::pair<std::string, std::string>> dynamicUnLocalTrans{};
+
+		bool numericPlaceholderAt(const std::string& value, size_t pos, int* index = nullptr) {
+			if (pos + 2 >= value.size() || value[pos] != '{' || value[pos + 2] != '}') {
+				return false;
+			}
+			const auto ch = value[pos + 1];
+			if (ch < '0' || ch > '9') {
+				return false;
+			}
+			if (index) {
+				*index = ch - '0';
+			}
+			return true;
+		}
+
+		bool containsNumericPlaceholder(const std::string& value) {
+			for (size_t i = 0; i + 2 < value.size(); i++) {
+				if (numericPlaceholderAt(value, i)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		bool matchNumericTemplate(
+			const std::string& value,
+			const std::string& sourceTemplate,
+			std::array<std::string, 10>* captures
+		) {
+			std::array<bool, 10> seen{};
+			size_t valuePos = 0;
+			for (size_t templatePos = 0; templatePos < sourceTemplate.size();) {
+				int placeholderIndex = -1;
+				if (numericPlaceholderAt(sourceTemplate, templatePos, &placeholderIndex)) {
+					const auto start = valuePos;
+					while (valuePos < value.size() &&
+						value[valuePos] >= '0' && value[valuePos] <= '9') {
+						valuePos++;
+					}
+					if (valuePos == start) {
+						return false;
+					}
+					const auto captured = value.substr(start, valuePos - start);
+					if (seen[placeholderIndex] && (*captures)[placeholderIndex] != captured) {
+						return false;
+					}
+					(*captures)[placeholderIndex] = captured;
+					seen[placeholderIndex] = true;
+					templatePos += 3;
+					continue;
+				}
+				if (valuePos >= value.size() || value[valuePos] != sourceTemplate[templatePos]) {
+					return false;
+				}
+				valuePos++;
+				templatePos++;
+			}
+			return valuePos == value.size();
+		}
+
+		std::string applyNumericTemplate(
+			const std::string& targetTemplate,
+			const std::array<std::string, 10>& captures
+		) {
+			std::string result;
+			result.reserve(targetTemplate.size() + 16);
+			for (size_t pos = 0; pos < targetTemplate.size();) {
+				int placeholderIndex = -1;
+				if (numericPlaceholderAt(targetTemplate, pos, &placeholderIndex)) {
+					result += captures[placeholderIndex];
+					pos += 3;
+					continue;
+				}
+				result.push_back(targetTemplate[pos]);
+				pos++;
+			}
+			return result;
+		}
+
+		bool getDynamicUnlocalTrans(const std::string& value, std::string* translated) {
+			if (value.find_first_of("0123456789") == std::string::npos) {
+				return false;
+			}
+			for (const auto& [sourceTemplate, targetTemplate] : dynamicUnLocalTrans) {
+				std::array<std::string, 10> captures{};
+				if (matchNumericTemplate(value, sourceTemplate, &captures)) {
+					*translated = applyNumericTemplate(targetTemplate, captures);
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 
 	void loadGenericTrans(const char* fileName, SCStringMap::Dictionary& transDict) {
@@ -22,6 +115,24 @@ namespace SCLocal {
 	}
 	void loadUnlocalTrans() {
 		loadGenericTrans("local2.json", unLocalTrans);
+		dynamicUnLocalTrans.clear();
+		try {
+			std::ifstream file(g_localify_base / "local2.json");
+			if (!file.is_open()) {
+				return;
+			}
+			auto fileData = nlohmann::json::parse(file);
+			for (auto& item : fileData.items()) {
+				if (!item.value().is_string() || !containsNumericPlaceholder(item.key())) {
+					continue;
+				}
+				dynamicUnLocalTrans.emplace_back(item.key(), item.value().get<std::string>());
+			}
+			printf("%zu dynamic local2 templates loaded.\n", dynamicUnLocalTrans.size());
+		}
+		catch (std::exception& e) {
+			printf("Load dynamic local2 templates failed: %s\n", e.what());
+		}
 	}
 
 	void loadLocalTrans() {
@@ -154,6 +265,9 @@ namespace SCLocal {
 		const auto origStr = utility::conversions::to_utf8string(orig);
 		if (const auto translated = unLocalTrans.find(origStr)) {
 			*newStr = *translated;
+			return true;
+		}
+		else if (getDynamicUnlocalTrans(origStr, newStr)) {
 			return true;
 		}
 		else {
